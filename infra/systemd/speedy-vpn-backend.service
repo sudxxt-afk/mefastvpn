@@ -1,0 +1,19 @@
+[Unit]
+Description=Speedy VPN Backend Facade
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=speedyvpn
+Group=speedyvpn
+WorkingDirectory=/opt/speedy-vpn-backend
+EnvironmentFile=/etc/speedy-vpn-backend.env
+ExecStart=/opt/speedy-vpn-backend/.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8081
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

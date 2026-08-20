@@ -1,0 +1,90 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Caches
+.pytest_cache
+.mypy_cache
+.ruff_cache
+.cache/
+*.cache
+
+# Virtual environments
+.venv
+venv
+env
+.env
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+.eggs/
+*.whl
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+*~
+
+# OS
+Thumbs.db
+.DS_Store
+*.tar.gz
+*.zip
+
+# Secrets — never commit these
+.env.*
+!.env.dist
+!.env.marzban.dist
+!.env.example
+!.env.marzban.example
+.env.marzban
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+server-config/etc/speedy-vpn-backend.env
+
+# AWG keys and client configs (contain real keys/URIs)
+root/awg/keys/
+root/awg/*.conf
+root/awg/*.vpnuri
+root/awg/*.png
+root/awg/*.log
+root/awg/*.bak*
+root/awg/.*.lock
+root/awg/.*
+
+# Root-level duplicate of telegram-vpn-bot (canonical is root/telegram-vpn-bot/)
+/telegram-vpn-bot/
+
+# Admin panel backups
+opt/speedy-vpn-admin/*.bak*
+opt/speedy-vpn-admin/*.pre-redesign*
+
+# Nginx config backups
+server-config/etc/nginx/conf.d/*.bak*
+
+# Local speedy-vpn-backend copy at root (not the /opt one)
+speedy-vpn-backend/
+
+# Runtime data and backups
+*.sqlite
+*.sqlite3
+*.db
+/backups/
+/runtime/
+
+# Infrastructure secrets
+/infra/env/*.env
+!/infra/env/*.example
+/infra/marzban/.env
+
+# Git
+.git

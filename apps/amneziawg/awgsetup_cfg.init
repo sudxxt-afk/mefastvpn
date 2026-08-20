@@ -1,0 +1,27 @@
+# Конфигурация установки AmneziaWG 2.0 (Авто-генерация)
+# Используется скриптами установки и управления
+export OS_ID='ubuntu'
+export OS_VERSION='24.04'
+export OS_CODENAME='noble'
+export AWG_PORT=39743
+export AWG_TUNNEL_SUBNET='10.9.9.1/24'
+export DISABLE_IPV6=1
+export ALLOWED_IPS_MODE=2
+export ALLOWED_IPS='0.0.0.0/5, 8.0.0.0/7, 11.0.0.0/8, 12.0.0.0/6, 16.0.0.0/4, 32.0.0.0/3, 64.0.0.0/2, 128.0.0.0/3, 160.0.0.0/5, 168.0.0.0/6, 172.0.0.0/12, 172.32.0.0/11, 172.64.0.0/10, 172.128.0.0/9, 173.0.0.0/8, 174.0.0.0/7, 176.0.0.0/4, 192.0.0.0/9, 192.128.0.0/11, 192.160.0.0/13, 192.169.0.0/16, 192.170.0.0/15, 192.172.0.0/14, 192.176.0.0/12, 192.192.0.0/10, 193.0.0.0/8, 194.0.0.0/7, 196.0.0.0/6, 200.0.0.0/5, 208.0.0.0/4, 8.8.8.8/32, 1.1.1.1/32'
+export AWG_ENDPOINT=''
+# AWG 2.0 Parameters
+export AWG_Jc=6
+export AWG_Jmin=51
+export AWG_Jmax=156
+export AWG_S1=137
+export AWG_S2=47
+export AWG_S3=37
+export AWG_S4=13
+export AWG_H1='529988252-617975962'
+export AWG_H2='843512410-923267014'
+export AWG_H3='1470292100-1716682859'
+export AWG_H4='2090818326-2136647042'
+export AWG_I1='<r 208>'
+export AWG_PRESET='default'
+export NO_TWEAKS=0
+export AWG_APPLY_MODE='syncconf'
