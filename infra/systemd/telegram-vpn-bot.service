@@ -1,0 +1,19 @@
+[Unit]
+Description=Telegram VPN Bot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+WorkingDirectory=/root/telegram-vpn-bot
+Environment=PATH=/root/telegram-vpn-bot/.venv/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=/root/telegram-vpn-bot/.venv/bin/python -m bot
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
