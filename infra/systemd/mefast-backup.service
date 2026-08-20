@@ -1,0 +1,15 @@
+[Unit]
+Description=MeFast VPN runtime backup
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+Environment=MEFAST_BACKUP_DIR=/var/backups/mefast
+Environment=MEFAST_BACKUP_RETENTION_DAYS=14
+ExecStart=/usr/local/sbin/backup-mefast
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
