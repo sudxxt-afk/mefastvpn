@@ -1,0 +1,7 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+.git
+.idea
+/venv
+/.env
+etc/nginx/conf/default.conf

@@ -1,0 +1,2161 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MeFast — Admin Panel</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0a0e17;
+      --bg-secondary: #111827;
+      --card: rgba(17, 24, 39, 0.7);
+      --card-solid: #111827;
+      --card-hover: rgba(22, 31, 48, 0.9);
+      --border: rgba(55, 65, 81, 0.5);
+      --border-hover: rgba(99, 102, 241, 0.4);
+      --text: #e5e7eb;
+      --text-muted: #6b7280;
+      --text-bright: #f9fafb;
+      --primary: #6366f1;
+      --primary-light: #818cf8;
+      --primary-glow: rgba(99, 102, 241, 0.15);
+      --success: #10b981;
+      --success-glow: rgba(16, 185, 129, 0.15);
+      --warning: #f59e0b;
+      --warning-glow: rgba(245, 158, 11, 0.15);
+      --danger: #ef4444;
+      --danger-glow: rgba(239, 68, 68, 0.15);
+      --accent: #06b6d4;
+      --accent-glow: rgba(6, 182, 212, 0.12);
+      --sidebar-width: 240px;
+      --sidebar-collapsed: 64px;
+      --header-height: 64px;
+      --radius: 12px;
+      --radius-lg: 16px;
+      --radius-sm: 8px;
+      --glass-blur: blur(16px);
+      --glass-bg: rgba(17, 24, 39, 0.6);
+      --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: -1;
+      background:
+        radial-gradient(ellipse 80% 60% at 10% 20%, rgba(99,102,241,0.08), transparent),
+        radial-gradient(ellipse 60% 50% at 90% 80%, rgba(6,182,212,0.06), transparent),
+        radial-gradient(ellipse 50% 40% at 50% 0%, rgba(139,92,246,0.05), transparent);
+    }
+
+    .mono { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+
+    /* ── Login ── */
+    .login-overlay {
+      position: fixed; inset: 0; z-index: 9000;
+      background: var(--bg);
+      display: flex; align-items: center; justify-content: center;
+      animation: fadeIn 0.4s ease;
+    }
+    .login-overlay::before {
+      content: '';
+      position: absolute; inset: 0;
+      background:
+        radial-gradient(circle at 30% 40%, rgba(99,102,241,0.12), transparent 60%),
+        radial-gradient(circle at 70% 60%, rgba(6,182,212,0.1), transparent 60%);
+    }
+    .login-box {
+      position: relative; z-index: 1;
+      background: var(--glass-bg);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg); padding: 48px 40px; width: 400px;
+      text-align: center;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.03) inset;
+    }
+    .login-box .login-icon {
+      width: 64px; height: 64px; margin: 0 auto 20px;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      border-radius: 20px; display: flex; align-items: center; justify-content: center;
+      font-size: 28px; box-shadow: 0 8px 32px rgba(99,102,241,0.3);
+    }
+    .login-box h2 { margin-bottom: 8px; color: var(--text-bright); font-weight: 700; font-size: 22px; }
+    .login-box .login-sub { color: var(--text-muted); font-size: 13px; margin-bottom: 28px; }
+    .login-box input {
+      width: 100%; padding: 12px 16px; margin-bottom: 12px;
+      background: rgba(0,0,0,0.3); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); color: var(--text); font-size: 14px;
+      font-family: 'Inter', sans-serif; transition: var(--transition);
+    }
+    .login-box input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-glow); }
+    .login-box input::placeholder { color: var(--text-muted); }
+    .login-box .error { color: var(--danger); font-size: 13px; margin-bottom: 12px; padding: 10px; background: var(--danger-glow); border-radius: var(--radius-sm); }
+    .login-box .btn-login {
+      width: 100%; padding: 14px; margin-top: 8px;
+      background: linear-gradient(135deg, var(--primary), #7c3aed);
+      border: none; border-radius: var(--radius-sm); color: #fff;
+      font-size: 15px; font-weight: 600; cursor: pointer;
+      font-family: 'Inter', sans-serif; transition: var(--transition);
+      box-shadow: 0 4px 16px rgba(99,102,241,0.3);
+    }
+    .login-box .btn-login:hover { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(99,102,241,0.4); }
+
+    /* ── Layout ── */
+    .app-layout { display: flex; min-height: 100vh; }
+    .sidebar {
+      width: var(--sidebar-width); position: fixed; top: 0; left: 0; bottom: 0;
+      background: var(--glass-bg);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border-right: 1px solid var(--border);
+      display: flex; flex-direction: column;
+      z-index: 100; transition: width var(--transition);
+      overflow: hidden;
+    }
+    .sidebar-brand {
+      padding: 20px; display: flex; align-items: center; gap: 12px;
+      border-bottom: 1px solid var(--border); min-height: var(--header-height);
+    }
+    .sidebar-brand .brand-icon {
+      width: 36px; height: 36px; flex-shrink: 0;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      border-radius: 10px; display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+    }
+    .sidebar-brand .brand-text { font-weight: 700; font-size: 15px; color: var(--text-bright); white-space: nowrap; }
+
+    .sidebar-nav { flex: 1; padding: 12px 8px; overflow-y: auto; }
+    .sidebar-nav .nav-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 11px 14px; margin-bottom: 2px;
+      border-radius: var(--radius-sm); cursor: pointer;
+      color: var(--text-muted); font-size: 14px; font-weight: 500;
+      transition: var(--transition); white-space: nowrap; position: relative;
+      border: 1px solid transparent;
+    }
+    .sidebar-nav .nav-item:hover { background: rgba(255,255,255,0.04); color: var(--text); }
+    .sidebar-nav .nav-item.active {
+      background: var(--primary-glow); color: var(--primary-light);
+      border-color: rgba(99,102,241,0.2);
+    }
+    .sidebar-nav .nav-item .nav-icon { font-size: 18px; width: 24px; text-align: center; flex-shrink: 0; }
+    .sidebar-nav .nav-item .nav-label { flex: 1; }
+    .sidebar-nav .nav-item .nav-badge {
+      background: var(--danger); color: #fff; font-size: 11px; font-weight: 700;
+      padding: 2px 7px; border-radius: 10px; min-width: 20px; text-align: center;
+      animation: badgePulse 2s ease-in-out infinite;
+    }
+    .sidebar-footer {
+      padding: 16px; border-top: 1px solid var(--border);
+      font-size: 12px; color: var(--text-muted);
+    }
+    .sidebar-footer .user-name { font-weight: 600; color: var(--text); font-size: 13px; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sidebar-footer .btn-logout {
+      margin-top: 10px; width: 100%; padding: 8px; background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border); border-radius: var(--radius-sm);
+      color: var(--text-muted); font-size: 12px; cursor: pointer; font-family: 'Inter', sans-serif;
+      transition: var(--transition);
+    }
+    .sidebar-footer .btn-logout:hover { background: var(--danger-glow); color: var(--danger); border-color: rgba(239,68,68,0.3); }
+
+    .main-content {
+      flex: 1; margin-left: var(--sidebar-width);
+      transition: margin-left var(--transition);
+    }
+    .main-header {
+      height: var(--header-height); display: flex; align-items: center; justify-content: space-between;
+      padding: 0 28px; border-bottom: 1px solid var(--border);
+      background: var(--glass-bg); backdrop-filter: var(--glass-blur);
+      position: sticky; top: 0; z-index: 50;
+    }
+    .main-header h2 { font-size: 18px; font-weight: 700; color: var(--text-bright); }
+    .main-header .header-actions { display: flex; gap: 8px; align-items: center; }
+    .main-header .refresh-indicator {
+      font-size: 12px; color: var(--text-muted);
+      display: flex; align-items: center; gap: 6px;
+    }
+    .main-header .refresh-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--success); animation: pulse 2s ease infinite;
+    }
+    .container { padding: 28px; max-width: 1280px; margin: 0 auto; }
+
+    /* ── Pages ── */
+    .page { display: none; animation: pageIn 0.3s ease; }
+    .page.active { display: block; }
+
+    /* ── Cards ── */
+    .stats-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 16px; margin-bottom: 28px;
+    }
+    .stat-card {
+      background: var(--card);
+      backdrop-filter: var(--glass-blur);
+      border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 22px;
+      transition: var(--transition); position: relative; overflow: hidden;
+    }
+    .stat-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg, var(--primary), var(--accent));
+      opacity: 0; transition: opacity var(--transition);
+    }
+    .stat-card:hover { border-color: var(--border-hover); transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,0,0,0.2); }
+    .stat-card:hover::before { opacity: 1; }
+    .stat-card .label { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.6px; font-weight: 600; }
+    .stat-card .value {
+      font-size: 30px; font-weight: 800; margin-top: 10px;
+      background: linear-gradient(135deg, var(--text-bright), var(--accent));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text; font-family: 'JetBrains Mono', monospace;
+    }
+    .stat-card .sparkline { margin-top: 12px; height: 32px; }
+
+    .card {
+      background: var(--card); backdrop-filter: var(--glass-blur);
+      border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 24px; margin-bottom: 20px;
+      transition: var(--transition);
+    }
+    .card:hover { border-color: rgba(55, 65, 81, 0.8); }
+
+    /* ── Tables ── */
+    .table-wrap { overflow-x: auto; border-radius: var(--radius); border: 1px solid var(--border); }
+    table {
+      width: 100%; border-collapse: collapse; background: var(--card-solid);
+      min-width: 800px;
+    }
+    th, td { padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--border); }
+    th { background: rgba(99,102,241,0.06); color: var(--text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px; font-weight: 600; }
+    td { font-size: 14px; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(99,102,241,0.03); }
+
+    /* ── Badges ── */
+    .badge {
+      display: inline-block; padding: 4px 10px; border-radius: 20px;
+      font-size: 12px; font-weight: 600; letter-spacing: 0.2px;
+    }
+    .badge-active { background: var(--success-glow); color: var(--success); }
+    .badge-inactive { background: rgba(107,114,128,0.15); color: var(--text-muted); }
+    .badge-pending { background: var(--warning-glow); color: var(--warning); }
+    .badge-danger { background: var(--danger-glow); color: var(--danger); }
+    .badge-primary { background: var(--primary-glow); color: var(--primary-light); }
+
+    /* ── Buttons ── */
+    .btn {
+      padding: 9px 18px; border: none; border-radius: var(--radius-sm);
+      cursor: pointer; font-size: 13px; font-weight: 600;
+      font-family: 'Inter', sans-serif; transition: var(--transition);
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .btn:hover { transform: translateY(-1px); }
+    .btn:active { transform: translateY(0); }
+    .btn-primary { background: var(--primary); color: #fff; box-shadow: 0 2px 8px rgba(99,102,241,0.3); }
+    .btn-primary:hover { background: var(--primary-light); box-shadow: 0 4px 16px rgba(99,102,241,0.4); }
+    .btn-success { background: var(--success); color: #fff; box-shadow: 0 2px 8px rgba(16,185,129,0.3); }
+    .btn-success:hover { background: #34d399; }
+    .btn-warning { background: var(--warning); color: #111; box-shadow: 0 2px 8px rgba(245,158,11,0.3); }
+    .btn-warning:hover { background: #fbbf24; }
+    .btn-danger { background: var(--danger); color: #fff; box-shadow: 0 2px 8px rgba(239,68,68,0.3); }
+    .btn-danger:hover { background: #f87171; }
+    .btn-ghost {
+      background: rgba(255,255,255,0.05); color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-ghost:hover { background: rgba(255,255,255,0.08); border-color: var(--border-hover); }
+    .btn-sm { padding: 5px 12px; font-size: 12px; }
+
+    /* ── Forms ── */
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 6px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; }
+    .form-group input, .form-group select, .form-group textarea {
+      width: 100%; padding: 10px 14px;
+      background: rgba(0,0,0,0.3); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); color: var(--text); font-size: 14px;
+      font-family: 'Inter', sans-serif; transition: var(--transition);
+    }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+      outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-glow);
+    }
+    .form-group textarea { resize: vertical; min-height: 80px; }
+    .form-row { display: flex; gap: 16px; }
+    .form-row > .form-group { flex: 1; }
+
+    /* ── Sections ── */
+    .section-title { font-size: 16px; font-weight: 700; margin-bottom: 16px; color: var(--text-bright); }
+    .search-bar { display: flex; gap: 12px; margin-bottom: 20px; align-items: center; flex-wrap: wrap; }
+    .search-bar input { flex: 1; min-width: 200px; }
+    .search-bar select { min-width: 180px; }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 12px 0 18px; }
+    .inline-actions { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+
+    /* ── Detail Panel ── */
+    .detail-panel {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 22px; margin-bottom: 20px;
+      animation: slideDown 0.25s ease;
+    }
+    .detail-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px; margin-top: 14px;
+    }
+    .detail-item {
+      background: rgba(0,0,0,0.25); border: 1px solid rgba(55,65,81,0.4);
+      border-radius: var(--radius-sm); padding: 12px;
+    }
+    .detail-item .label { font-size: 11px; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.5px; font-weight: 600; }
+    .detail-item .value { margin-top: 6px; font-size: 14px; word-break: break-word; white-space: pre-wrap; }
+    .code-box {
+      background: rgba(0,0,0,0.4); border: 1px solid var(--border); border-radius: var(--radius-sm);
+      padding: 14px; white-space: pre-wrap; word-break: break-word;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px; line-height: 1.5; max-height: 400px; overflow: auto;
+    }
+
+    /* ── Modal ── */
+    .modal-backdrop {
+      position: fixed; inset: 0; z-index: 8000;
+      background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+      display: flex; align-items: center; justify-content: center;
+      animation: fadeIn 0.2s ease;
+    }
+    .modal-backdrop.closing { animation: fadeOut 0.2s ease forwards; }
+    .modal-box {
+      background: var(--bg-secondary); border: 1px solid var(--border);
+      border-radius: var(--radius-lg); padding: 32px; width: 440px; max-width: 90vw;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.5);
+      animation: modalIn 0.25s ease;
+    }
+    .modal-backdrop.closing .modal-box { animation: modalOut 0.2s ease forwards; }
+    .modal-box h3 { font-size: 18px; font-weight: 700; color: var(--text-bright); margin-bottom: 20px; }
+    .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; }
+
+    /* ── Toast ── */
+    .toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; }
+    .toast {
+      background: var(--card-solid); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 14px 20px; max-width: 380px;
+      font-size: 14px; animation: toastIn 0.3s ease;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3); display: flex; align-items: center; gap: 10px;
+    }
+    .toast.removing { animation: toastOut 0.3s ease forwards; }
+    .toast.success { border-left: 3px solid var(--success); }
+    .toast.error { border-left: 3px solid var(--danger); }
+    .toast-icon { font-size: 18px; flex-shrink: 0; }
+
+    /* ── Skeleton ── */
+    .skeleton-line {
+      height: 14px; border-radius: 6px; margin-bottom: 10px;
+      background: linear-gradient(90deg, rgba(55,65,81,0.3) 25%, rgba(55,65,81,0.5) 50%, rgba(55,65,81,0.3) 75%);
+      background-size: 200% 100%; animation: shimmer 1.5s ease-in-out infinite;
+    }
+    .skeleton-line.w-50 { width: 50%; }
+    .skeleton-line.w-70 { width: 70%; }
+    .skeleton-line.w-90 { width: 90%; }
+    .skeleton-line.h-lg { height: 32px; }
+    .skeleton-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 22px;
+    }
+
+    /* ── Release card ── */
+    .release-card {
+      background: linear-gradient(135deg, rgba(99,102,241,0.1), rgba(6,182,212,0.06));
+      border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 28px;
+    }
+    .release-card .version { font-size: 28px; font-weight: 800; color: var(--accent); font-family: 'JetBrains Mono', monospace; }
+    .release-card .meta { color: var(--text-muted); font-size: 13px; margin-top: 10px; line-height: 1.6; }
+
+    /* ── Pagination ── */
+    .pagination { display: flex; gap: 8px; justify-content: center; margin-top: 20px; align-items: center; }
+    .pagination button {
+      padding: 7px 16px; background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); color: var(--text); cursor: pointer; font-size: 13px;
+      font-family: 'Inter', sans-serif; transition: var(--transition);
+    }
+    .pagination button:hover:not(:disabled) { border-color: var(--primary); }
+    .pagination button:disabled { opacity: 0.3; cursor: not-allowed; }
+    .pagination .page-info { color: var(--text-muted); font-size: 13px; padding: 0 8px; }
+
+    /* ── Empty ── */
+    .empty-state { text-align: center; padding: 48px 24px; color: var(--text-muted); }
+    .loading { text-align: center; padding: 40px; color: var(--text-muted); }
+
+    /* ── Utilities ── */
+    .hidden { display: none !important; }
+    .gap-sm { gap: 6px; }
+
+    /* ── Animations ── */
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+    @keyframes pageIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes slideDown { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes modalIn { from { opacity: 0; transform: scale(0.95) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+    @keyframes modalOut { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(0.95); } }
+    @keyframes toastIn { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: translateX(0); } }
+    @keyframes toastOut { from { opacity: 1; transform: translateX(0); } to { opacity: 0; transform: translateX(40px); } }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    @keyframes badgePulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+
+    /* ── Responsive ── */
+    .mobile-menu-toggle { display: none; }
+    .mobile-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 90; backdrop-filter: blur(4px); opacity: 0; transition: opacity 0.3s; }
+    .mobile-overlay.active { display: block; opacity: 1; }
+
+    @media (max-width: 768px) {
+      .sidebar { transform: translateX(-100%); width: 260px; box-shadow: 4px 0 24px rgba(0,0,0,0.5); }
+      .sidebar.open { transform: translateX(0); }
+      .main-content { margin-left: 0; }
+      .mobile-menu-toggle { display: inline-flex; margin-right: 12px; }
+      .container { padding: 16px; }
+      .form-row, .search-bar { flex-direction: column; }
+      .search-bar select { min-width: 0; width: 100%; }
+      .stats-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+      .main-header { padding: 0 16px; }
+    }
+    
+    /* Make selects natively dark if supported, and style option bg */
+    select option { background: var(--bg-secondary); color: var(--text-bright); }
+  </style>
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+
+<!-- Login Overlay -->
+<div id="loginOverlay" class="login-overlay">
+  <div class="login-box">
+    <div class="login-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></div>
+    <h2>MeFast</h2>
+    <div class="login-sub">Вход в панель администратора</div>
+    <div id="loginError" class="error hidden"></div>
+    <input type="password" id="loginPassword" placeholder="Пароль админки" autocomplete="current-password">
+    <input type="text" id="loginTelegramId" placeholder="Telegram User ID" autocomplete="off">
+    <input type="text" id="loginDevice" placeholder="Device ID" value="admin-web-panel" style="display:none">
+    <input type="text" id="loginLabel" placeholder="Device Label" value="Admin Web Panel" style="display:none">
+    <input type="password" id="loginToken" placeholder="Или вставьте Bearer Token" autocomplete="off">
+    <button class="btn-login" onclick="doLogin()">Войти</button>
+  </div>
+</div>
+
+<!-- App Layout -->
+<div class="app-layout">
+<div class="mobile-overlay" onclick="toggleSidebar()"></div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></div>
+      <span class="brand-text">MeFast</span>
+    </div>
+    <nav class="sidebar-nav" id="sidebarNav">
+      <div class="nav-item active" onclick="showPage('dashboard', this)" data-page="dashboard">
+        <span class="nav-icon"><i data-lucide="layout-dashboard"></i></span><span class="nav-label">Дашборд</span>
+      </div>
+      <div class="nav-item" onclick="showPage('users', this)" data-page="users">
+        <span class="nav-icon"><i data-lucide="users"></i></span><span class="nav-label">Пользователи</span>
+      </div>
+      <div class="nav-item" onclick="showPage('orders', this)" data-page="orders">
+        <span class="nav-icon"><i data-lucide="shopping-cart"></i></span><span class="nav-label">Заказы</span><span class="nav-badge hidden" id="ordersBadge">0</span>
+      </div>
+      <div class="nav-item" onclick="showPage('sources', this)" data-page="sources">
+        <span class="nav-icon"><i data-lucide="link"></i></span><span class="nav-label">Источники</span>
+      </div>
+      <div class="nav-item" onclick="showPage('plans', this)" data-page="plans">
+        <span class="nav-icon"><i data-lucide="tag"></i></span><span class="nav-label">Тарифы</span>
+      </div>
+      <div class="nav-item" onclick="showPage('catalog', this)" data-page="catalog">
+        <span class="nav-icon"><i data-lucide="server"></i></span><span class="nav-label">Серверы</span>
+      </div>
+      <div class="nav-item" onclick="showPage('parser', this)" data-page="parser">
+        <span class="nav-icon"><i data-lucide="radar"></i></span><span class="nav-label">Парсер</span>
+      </div>
+      <div class="nav-item" onclick="showPage('broadcast', this)" data-page="broadcast">
+        <span class="nav-icon"><i data-lucide="send"></i></span><span class="nav-label">Рассылка</span>
+      </div>
+      <div class="nav-item" onclick="showPage('system', this)" data-page="system">
+        <span class="nav-icon"><i data-lucide="settings"></i></span><span class="nav-label">Система</span>
+      </div>
+      <div class="nav-item" onclick="showPage('promos', this)" data-page="promos">
+        <span class="nav-icon"><i data-lucide="ticket"></i></span><span class="nav-label">Промокоды</span>
+      </div>
+      <div class="nav-item" onclick="showPage('releases', this)" data-page="releases">
+        <span class="nav-icon"><i data-lucide="package"></i></span><span class="nav-label">Обновления</span>
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-name" id="sidebarUserName">—</div>
+      <div style="color:var(--text-muted);font-size:11px" id="sidebarUserHandle"></div>
+      <button class="btn-logout" onclick="doLogout()"><span>Выйти из аккаунта</span><i data-lucide="log-out" style="width:14px;height:14px;"></i></button>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <div class="main-content">
+    <header class="main-header">
+      <button class="btn btn-ghost btn-sm mobile-menu-toggle" onclick="toggleSidebar()"><i data-lucide="menu"></i></button>
+      <h2 id="pageTitle"><i data-lucide="layout-dashboard"></i> Дашборд</h2>
+      <div class="header-actions">
+        <div class="refresh-indicator"><div class="refresh-dot"></div><span id="lastRefresh">—</span></div>
+      </div>
+    </header>
+
+    <div class="container">
+
+      <!-- Dashboard -->
+      <div id="page-dashboard" class="page active">
+        <div class="stats-grid" id="statsGrid"></div>
+      </div>
+
+      <!-- Users -->
+      <div id="page-users" class="page">
+        <div class="search-bar">
+          <input type="text" id="userSearch" placeholder="Поиск по имени, Telegram…" onkeydown="if(event.key==='Enter')loadUsers()">
+          <select id="userSubFilter" onchange="loadUsers()">
+            <option value="">Все статусы</option>
+            <option value="active">Активные</option>
+            <option value="inactive">Без подписки</option>
+            <option value="expired">Истёкшие</option>
+          </select>
+          <button class="btn btn-primary" onclick="loadUsers()">Поиск</button>
+        </div>
+        <div id="userDetail"></div>
+        <div id="usersTable"></div>
+        <div id="usersPagination" class="pagination"></div>
+      </div>
+
+      <!-- Orders -->
+      <div id="page-orders" class="page">
+        <div class="search-bar">
+          <select id="orderStatusFilter" onchange="loadOrders()">
+            <option value="">Ожидающие</option>
+            <option value="waiting_confirmation">Ожидают подтверждения</option>
+            <option value="pending_payment">Ожидают оплаты</option>
+            <option value="confirmed">Подтверждённые</option>
+            <option value="rejected">Отклонённые</option>
+            <option value="canceled">Отменённые</option>
+          </select>
+          <button class="btn btn-primary" onclick="loadOrders()">Обновить</button>
+        </div>
+        <div id="ordersTable"></div>
+      </div>
+
+      <!-- Sources -->
+      <div id="page-sources" class="page">
+        <div class="card">
+          <div class="section-title">Добавить источник серверов</div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Тип</label>
+              <select id="sourceKind">
+                <option value="raw_links">Raw-ссылки</option>
+                <option value="subscription_url">Subscription URL</option>
+                <option value="marzban_import">Marzban import</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Название</label>
+              <input type="text" id="sourceTitle" placeholder="Например: EU pool">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Ссылки или URL</label>
+            <textarea id="sourceText" placeholder="Вставьте subscription URL или список vmess/vless/trojan/ss ссылок"></textarea>
+          </div>
+          <button class="btn btn-success" onclick="createSource()">Добавить и синхронизировать</button>
+        </div>
+        <div class="toolbar">
+          <button class="btn btn-primary" onclick="loadSources()">Обновить источники</button>
+          <button class="btn btn-ghost" onclick="loadCatalogStatus()">Статус каталога</button>
+        </div>
+        <div id="catalogStatusBox"></div>
+        <div id="sourcesTable"></div>
+      </div>
+
+      <!-- Catalog -->
+      
+      <div id="page-plans" class="page">
+        <div class="card">
+          <div class="section-title">Тарифные планы</div>
+          <p style="color:var(--text-muted); font-size:13px; margin-bottom:16px;">Изменение цен применяется сразу и влияет на новые покупки и продления.</p>
+          <div id="plansList"></div>
+        </div>
+      </div>
+
+      <div id="page-catalog" class="page">
+        <div class="search-bar">
+          <select id="catalogSourceFilter" onchange="loadCatalog(0)"><option value="">Все источники</option></select>
+          <select id="catalogHiddenFilter" onchange="loadCatalog(0)">
+            <option value="true">Все серверы</option>
+            <option value="false">Только опубликованные</option>
+          </select>
+          <button class="btn btn-primary" onclick="loadCatalog(0)">Обновить</button>
+        </div>
+        <div id="catalogDetail"></div>
+        <div id="catalogTable"></div>
+        <div id="catalogPagination" class="pagination"></div>
+      </div>
+
+      <!-- Parser -->
+      <div id="page-parser" class="page">
+        <!-- Status Card -->
+        <div class="card mb">
+          <div class="card-header">Статус Парсера</div>
+          <div class="card-body">
+            <div id="parserStatusBox">Загрузка...</div>
+            <div id="parserProgressWrap" style="display:none; margin-top:12px;">
+              <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:4px;">
+                <span id="parserProgressLabel">0 / 0</span>
+                <span id="parserProgressPct">0%</span>
+              </div>
+              <div style="width:100%; height:8px; background:rgba(255,255,255,0.1); border-radius:4px; overflow:hidden;">
+                <div id="parserProgressBar" style="width:0%; height:100%; background:linear-gradient(90deg,var(--primary),var(--success)); border-radius:4px; transition:width 0.3s ease;"></div>
+              </div>
+            </div>
+            <div id="parserAvgPingBox" style="margin-top:12px;"></div>
+            <div style="margin-top:15px; display:flex; gap:10px;">
+              <button class="btn btn-primary" id="parserStartBtn" onclick="startParser()">🚀 Запустить</button>
+              <button class="btn btn-ghost" id="parserStopBtn" onclick="stopParser()" style="display:none; color:var(--danger);">⏹ Остановить</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- History Chart Card -->
+        <div class="card mb">
+          <div class="card-header">История запусков (последние 30)</div>
+          <div class="card-body">
+            <div id="parserHistoryChart" style="width:100%; height:220px; position:relative;"></div>
+            <div id="parserHistoryLegend" style="margin-top:8px; display:flex; gap:16px; flex-wrap:wrap; font-size:12px;"></div>
+          </div>
+        </div>
+
+        <!-- Settings Card -->
+        <div class="card mb">
+          <div class="card-header">Настройки Парсера</div>
+          <div class="card-body">
+            <div style="margin-bottom:16px;">
+              <label style="font-weight:600; margin-bottom:8px; display:block;">Источники GitHub</label>
+              <div id="parserSourcesList"></div>
+              <button class="btn btn-ghost" style="margin-top:8px;" onclick="addParserSource()">+ Добавить источник</button>
+            </div>
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+              <div class="form-group" style="flex:1; min-width:120px;">
+                <label>Лимит VLESS</label>
+                <input type="number" id="parserLimitVless" class="input">
+              </div>
+              <div class="form-group" style="flex:1; min-width:120px;">
+                <label>Лимит Trojan</label>
+                <input type="number" id="parserLimitTrojan" class="input">
+              </div>
+              <div class="form-group" style="flex:1; min-width:120px;">
+                <label>Лимит Hysteria2</label>
+                <input type="number" id="parserLimitHysteria" class="input">
+              </div>
+              <div class="form-group" style="flex:1; min-width:120px;">
+                <label>Лимит SS</label>
+                <input type="number" id="parserLimitSS" class="input">
+              </div>
+            </div>
+            <div style="display:flex; gap:10px;">
+              <div class="form-group" style="flex:1;">
+                <label>Макс. пинг (мс)</label>
+                <input type="number" id="parserMaxPing" class="input">
+              </div>
+              <div class="form-group" style="flex:1;">
+                <label>Потоков проверки</label>
+                <input type="number" id="parserWorkers" class="input">
+              </div>
+            </div>
+            <button class="btn btn-success" onclick="saveParserConfig()">Сохранить настройки</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Broadcast -->
+      <div id="page-broadcast" class="page">
+        <div class="card mb">
+          <div class="card-header">Рассылка в Telegram</div>
+          <div class="card-body">
+            <div class="form-group">
+              <label>Сообщение для всех пользователей бота (поддерживается HTML-разметка Telegram)</label>
+              <textarea id="broadcastText" class="input" rows="8" placeholder="Введите текст рассылки..."></textarea>
+            </div>
+            <button class="btn btn-primary" onclick="sendBroadcast()" id="btnSendBroadcast">Отправить рассылку</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- System -->
+      <div id="page-system" class="page">
+        <div class="toolbar">
+          <button class="btn btn-primary" onclick="loadSystem()">Обновить систему</button>
+          <button class="btn btn-ghost" onclick="refreshInventory()">Обновить inventory</button>
+          <button class="btn btn-ghost" onclick="runFullFlow()">Full-flow test</button>
+        </div>
+        <div class="stats-grid" id="systemStatsGrid"></div>
+        <div class="card">
+          <div class="section-title">Marzban users</div>
+          <div class="form-row">
+            <div class="form-group"><label>Username</label><input type="text" id="marzbanUsername" placeholder="mefast_admin_web_test"></div>
+            <div class="form-group"><label>Note</label><input type="text" id="marzbanNote" placeholder="Created from web admin"></div>
+          </div>
+          <div class="inline-actions">
+            <button class="btn btn-success" onclick="createMarzbanUser()">Создать</button>
+            <button class="btn btn-ghost" onclick="getMarzbanUser()">Открыть</button>
+            <button class="btn btn-primary" onclick="loadMarzbanUsers()">Список</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="section-title">Конфиг по location_id</div>
+          <div class="form-row">
+            <div class="form-group"><label>Location ID</label><input type="text" id="configLocationId" placeholder="server_de_vless"></div>
+            <div class="form-group"><label>Username</label><input type="text" id="configUsername" placeholder="admin_web_test"></div>
+          </div>
+          <button class="btn btn-ghost" onclick="getInventoryConfig()">Получить конфиг</button>
+        </div>
+        <div id="systemInbounds"></div>
+        <div id="systemHosts"></div>
+        <div id="marzbanOutput"></div>
+        <div id="systemOutput"></div>
+      </div>
+
+      <!-- Promos -->
+      <div id="page-promos" class="page">
+        <div class="card">
+          <div class="section-title">Создать промокод</div>
+          <div class="form-row">
+            <div class="form-group"><label>Код</label><input type="text" id="promoCode" placeholder="POLKADOT" style="text-transform:uppercase"></div>
+            <div class="form-group">
+              <label>Тип эффекта</label>
+              <select id="promoEffect" onchange="togglePromoFields()">
+                <option value="free_subscription">Бесплатная подписка</option>
+                <option value="discount_percent">Скидка %</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group" id="promoDurationGroup"><label>Дней доступа</label><input type="number" id="promoDuration" placeholder="365" min="1"></div>
+            <div class="form-group hidden" id="promoDiscountGroup"><label>Процент скидки</label><input type="number" id="promoDiscount" placeholder="25" min="1" max="99"></div>
+            <div class="form-group"><label>Макс. использований</label><input type="number" id="promoMaxRedemptions" placeholder="Без лимита" min="1"></div>
+          </div>
+          <button class="btn btn-success" onclick="createPromo()">Создать</button>
+        </div>
+        <div class="section-title">Существующие промокоды</div>
+        <div id="promosTable"></div>
+      </div>
+
+      <!-- Releases -->
+      <div id="page-releases" class="page">
+        <div class="card">
+          <div class="section-title">Опубликовать обновление Android</div>
+          <div class="form-row">
+            <div class="form-group"><label>Имя версии</label><input type="text" id="releaseVersionName" placeholder="1.2.0"></div>
+            <div class="form-group"><label>Код версии</label><input type="number" id="releaseVersionCode" placeholder="12" min="1"></div>
+          </div>
+          <div class="form-group"><label>Примечания к релизу</label><textarea id="releaseNotes" placeholder="Что нового в этой версии…"></textarea></div>
+          <button class="btn btn-success" onclick="publishRelease()">Опубликовать</button>
+        </div>
+        <div class="section-title">Текущий релиз</div>
+        <div id="currentRelease"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Toast Container -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+// ── Config & State ──
+const API_BASE = window.location.port === '3737' || window.location.protocol === 'file:'
+  ? 'https://mevl.me-fast.pro'
+  : window.location.origin;
+
+let authToken = localStorage.getItem('mefast_admin_token') || '';
+let currentUserId = '';
+let _currentPage = 'dashboard';
+let _autoRefreshInterval = null;
+let _orderCheckInterval = null;
+let _lastPendingCount = -1;
+
+// ── Auto-logout after 30 minutes of inactivity ──
+let _inactivityTimer = null;
+const INACTIVITY_TIMEOUT_MS = 30 * 60 * 1000;
+
+function resetInactivityTimer() {
+  if (_inactivityTimer) clearTimeout(_inactivityTimer);
+  _inactivityTimer = setTimeout(() => {
+    if (authToken) {
+      toast('Сессия истекла. Пожалуйста, войдите снова.', 'error');
+      doLogout();
+    }
+  }, INACTIVITY_TIMEOUT_MS);
+}
+
+['click', 'keydown', 'mousemove', 'scroll'].forEach(evt =>
+  document.addEventListener(evt, resetInactivityTimer, { passive: true })
+);
+resetInactivityTimer();
+
+// ── Page titles ──
+const PAGE_TITLES = {
+  dashboard: '<i data-lucide="layout-dashboard"></i> Дашборд',
+  users: '<i data-lucide="users"></i> Пользователи',
+  orders: '<i data-lucide="shopping-cart"></i> Заказы',
+  sources: '<i data-lucide="link"></i> Источники',
+  plans: '<i data-lucide="tag"></i> Тарифы',
+  catalog: '<i data-lucide="server"></i> Серверы',
+  parser: '<i data-lucide="radar"></i> Парсер Github',
+  broadcast: '<i data-lucide="send"></i> Рассылка',
+  system: '<i data-lucide="settings"></i> Настройки системы',
+  promos: '<i data-lucide="ticket"></i> Промокоды',
+  releases: '<i data-lucide="package"></i> Обновления',
+};
+
+// ── Auth ──
+async function doLogin() {
+  const tokenInput = document.getElementById('loginToken').value.trim();
+  const telegramId = document.getElementById('loginTelegramId').value.trim();
+  const password = document.getElementById('loginPassword').value;
+
+  if (!password) { showLoginError('Введите пароль админки.'); return; }
+
+  if (tokenInput) {
+    authToken = tokenInput;
+    try {
+      await apiGet('/v1/admin/dashboard');
+      localStorage.setItem('mefast_admin_token', authToken);
+      hideLogin();
+      loadDashboard();
+    } catch (e) {
+      showLoginError('Токен/пароль невалидный или нет прав администратора.');
+      authToken = '';
+    }
+    return;
+  }
+
+  if (!telegramId) { showLoginError('Введите Telegram User ID или Bearer Token.'); return; }
+
+  try {
+    const deviceId = document.getElementById('loginDevice').value.trim() || 'admin-web';
+    const deviceLabel = document.getElementById('loginLabel').value.trim() || 'Admin Panel';
+    const resp = await fetch(API_BASE + '/v1/admin/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        password,
+        telegram_user_id: parseInt(telegramId, 10),
+        device_id: deviceId,
+        device_label: deviceLabel,
+      }),
+    });
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      throw new Error(err.detail?.message || err.detail || `HTTP ${resp.status}`);
+    }
+    const data = await resp.json();
+    authToken = data.auth_token;
+    currentUserId = data.user_id;
+    localStorage.setItem('mefast_admin_token', authToken);
+    document.getElementById('sidebarUserName').textContent = data.display_name || 'Admin';
+    document.getElementById('sidebarUserHandle').textContent = data.telegram_handle || '';
+    hideLogin();
+    loadDashboard();
+    startAutoRefresh();
+  } catch (e) {
+    if (e.message.includes('429') || e.message.includes('Too many')) {
+      showLoginError('Слишком много попыток входа. Подождите 2 минуты.');
+    } else {
+      showLoginError(e.message);
+    }
+  }
+}
+
+function doLogout() {
+  authToken = '';
+  localStorage.removeItem('mefast_admin_token');
+  stopAutoRefresh();
+  location.reload();
+}
+
+function showLoginError(msg) {
+  const el = document.getElementById('loginError');
+  el.textContent = msg;
+  el.classList.remove('hidden');
+}
+
+function hideLogin() {
+  document.getElementById('loginOverlay').classList.add('hidden');
+}
+
+// ── API Helpers ──
+function authHeaders(includeJson = false) {
+  const headers = { 'Authorization': 'Bearer ' + authToken };
+  if (includeJson) headers['Content-Type'] = 'application/json';
+  return headers;
+}
+
+async function apiGet(path) {
+  const resp = await fetch(API_BASE + path, { headers: authHeaders() });
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({}));
+    throw new Error(err.detail?.message || err.detail || `HTTP ${resp.status}`);
+  }
+  return resp.json();
+}
+
+async function apiPost(path, body = {}) {
+  const resp = await fetch(API_BASE + path, {
+    method: 'POST', headers: authHeaders(true), body: JSON.stringify(body),
+  });
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({}));
+    throw new Error(err.detail?.message || err.detail || `HTTP ${resp.status}`);
+  }
+  return resp.json();
+}
+
+async function apiRequest(method, path, body = {}) {
+  const options = { method, headers: authHeaders(true) };
+  if (method !== 'GET') options.body = JSON.stringify(body);
+  const resp = await fetch(API_BASE + path, options);
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({}));
+    throw new Error(err.detail?.message || err.detail || `HTTP ${resp.status}`);
+  }
+  return resp.json();
+}
+
+// ── Navigation ──
+function toggleSidebar() {
+  document.querySelector('.sidebar').classList.toggle('open');
+  document.querySelector('.mobile-overlay').classList.toggle('active');
+}
+
+function showPage(name, btnEl) {
+  setTimeout(() => lucide.createIcons(), 0);
+  _currentPage = name;
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+  if (btnEl) btnEl.classList.add('active');
+  else {
+    const item = document.querySelector(`.nav-item[data-page="${name}"]`);
+    if (item) item.classList.add('active');
+  }
+  document.getElementById('pageTitle').innerHTML = PAGE_TITLES[name] || name;
+  if (window.innerWidth <= 768) { document.querySelector('.sidebar').classList.remove('open'); document.querySelector('.mobile-overlay').classList.remove('active'); }
+  setTimeout(() => lucide.createIcons(), 0);
+
+  switch (name) {
+    case 'dashboard': loadDashboard(); break;
+    case 'users': loadUsers(); break;
+    case 'orders': loadOrders(); break;
+    case 'sources': loadSources(); break;
+    case 'catalog': loadCatalog(0); break;
+    case 'parser': loadParser(); break;
+    case 'system': loadSystem(); break;
+    case 'promos': loadPromos(); break;
+    case 'releases': loadRelease(); break;
+  }
+}
+
+// ── Toast ──
+function toast(msg, type = 'success') {
+  setTimeout(() => lucide.createIcons(), 0);
+  const container = document.getElementById('toastContainer');
+  const el = document.createElement('div');
+  el.className = 'toast ' + type;
+  el.innerHTML = `<span class="toast-icon">${type === 'success' ? '<i data-lucide="check-circle"></i>' : '<i data-lucide="alert-triangle"></i>'}</span><span>${esc(msg)}</span>`;
+  container.appendChild(el);
+  setTimeout(() => {
+    el.classList.add('removing');
+    setTimeout(() => el.remove(), 300);
+  }, 4000);
+}
+
+// ── Modal ──
+function showModal(title, fieldsHtml, onSave) {
+  const backdrop = document.createElement('div');
+  backdrop.className = 'modal-backdrop';
+  backdrop.innerHTML = `
+    <div class="modal-box">
+      <h3>${esc(title)}</h3>
+      <div class="modal-body">${fieldsHtml}</div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeModal(this)">Отмена</button>
+        <button class="btn btn-primary" id="modalSaveBtn">Сохранить</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(backdrop);
+  backdrop.querySelector('#modalSaveBtn').addEventListener('click', () => {
+    onSave(backdrop);
+    closeModal(backdrop.querySelector('button'));
+  });
+  backdrop.addEventListener('click', (e) => { if (e.target === backdrop) closeModal(backdrop.querySelector('button')); });
+  const firstInput = backdrop.querySelector('input, textarea, select');
+  if (firstInput) setTimeout(() => firstInput.focus(), 50);
+}
+
+function closeModal(el) {
+  const backdrop = el.closest('.modal-backdrop');
+  if (!backdrop) return;
+  backdrop.classList.add('closing');
+  setTimeout(() => backdrop.remove(), 200);
+}
+
+// ── Skeleton ──
+function skeletonGrid(count) {
+  return Array(count).fill(0).map(() =>
+    `<div class="skeleton-card"><div class="skeleton-line h-lg w-50"></div><div class="skeleton-line w-70" style="margin-top:12px"></div></div>`
+  ).join('');
+}
+
+function skeletonTable(rows) {
+  return `<div class="skeleton-card" style="padding:0;overflow:hidden">${Array(rows).fill(0).map(() =>
+    `<div style="padding:14px 16px;border-bottom:1px solid var(--border)"><div class="skeleton-line w-90" style="margin:0"></div></div>`
+  ).join('')}</div>`;
+}
+
+// ── Count-up Animation ──
+function countUp(element, target, duration = 900) {
+  const num = parseFloat(target);
+  if (isNaN(num)) { element.textContent = target; return; }
+  const isInt = Number.isInteger(num);
+  const start = 0;
+  const startTime = performance.now();
+
+  function update(currentTime) {
+    const elapsed = currentTime - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    const eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
+    const current = start + (num - start) * eased;
+    element.textContent = isInt ? Math.round(current).toLocaleString() : current.toFixed(1);
+    if (progress < 1) requestAnimationFrame(update);
+  }
+  requestAnimationFrame(update);
+}
+
+// ── Auto-refresh ──
+function startAutoRefresh() {
+  stopAutoRefresh();
+  _autoRefreshInterval = setInterval(() => {
+    if (_currentPage === 'dashboard') loadDashboard(true);
+    updateRefreshTime();
+  }, 60000);
+  _orderCheckInterval = setInterval(checkPendingOrders, 30000);
+  checkPendingOrders();
+}
+
+function stopAutoRefresh() {
+  if (_autoRefreshInterval) { clearInterval(_autoRefreshInterval); _autoRefreshInterval = null; }
+  if (_orderCheckInterval) { clearInterval(_orderCheckInterval); _orderCheckInterval = null; }
+}
+
+function updateRefreshTime() {
+  document.getElementById('lastRefresh').textContent = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+}
+
+async function checkPendingOrders() {
+  try {
+    const data = await apiGet('/v1/admin/orders?limit=50&status=waiting_confirmation');
+    const count = data.orders?.length || 0;
+    const badge = document.getElementById('ordersBadge');
+    if (count > 0) {
+      badge.textContent = count;
+      badge.classList.remove('hidden');
+      if (_lastPendingCount >= 0 && count > _lastPendingCount) {
+        toast(`Новый заказ ожидает подтверждения! (${count})`, 'success');
+      }
+    } else {
+      badge.classList.add('hidden');
+    }
+    _lastPendingCount = count;
+  } catch {}
+}
+
+// ── Sparkline (Decorative) ──
+function generateSparkline() {
+  let prev = 15;
+  const pts = Array.from({length: 10}, (_, i) => {
+    prev = Math.max(2, Math.min(30, prev + (Math.random() - 0.4) * 10));
+    return `${i*11},${prev.toFixed(1)}`;
+  }).join(' ');
+  return `<svg class="sparkline" viewBox="0 0 100 32" preserveAspectRatio="none" style="width:100%;height:32px;margin-top:12px;opacity:0.6">
+    <polyline points="${pts}" fill="none" stroke="url(#sparkline-grad)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <defs>
+      <linearGradient id="sparkline-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%" stop-color="var(--primary)" />
+        <stop offset="100%" stop-color="var(--accent)" />
+      </linearGradient>
+    </defs>
+  </svg>`;
+}
+
+// ── Dashboard ──
+async function loadDashboard(silent = false) {
+  const grid = document.getElementById('statsGrid');
+  if (!silent) grid.innerHTML = `<div class="stats-grid">${skeletonGrid(7)}</div>`;
+  try {
+    const data = await apiGet('/v1/admin/dashboard');
+    grid.innerHTML = '';
+    const items = [
+      ['Пользователей', data.users_total],
+      ['Устройств', data.devices_total],
+      ['Активных подписок', data.active_subscriptions],
+      ['Истёкших / Отозванных', data.expired_or_revoked_subscriptions],
+      ['Ожидают оплаты', data.pending_payments],
+      ['На подтверждении', data.awaiting_confirmation],
+      ['Выручка, ₽', data.confirmed_revenue_rub],
+    ];
+    items.forEach(([label, value]) => {
+      const card = document.createElement('div');
+      card.className = 'stat-card';
+      card.innerHTML = `<div class="label">${esc(label)}</div><div class="value" data-target="${value}">0</div>${generateSparkline()}`;
+      grid.appendChild(card);
+      countUp(card.querySelector('.value'), value);
+    });
+    updateRefreshTime();
+  } catch (e) {
+    grid.innerHTML = `<div class="empty-state">Ошибка: ${esc(e.message)}</div>`;
+  }
+}
+
+
+// ── Plans ──
+async function loadPlans() {
+  const target = document.getElementById('plansList');
+  target.innerHTML = '<div class="loading">Загрузка...</div>';
+  try {
+    const plans = await apiGet('/v1/plans'); // public endpoint
+    if (!plans.length) { target.innerHTML = '<div class="empty-state">Нет тарифов</div>'; return; }
+    
+    setTimeout(()=>lucide.createIcons(),0);
+    target.innerHTML = `<div class="table-wrap"><table>
+      <tr><th>ID</th><th>Название</th><th>Описание</th><th>Срок (дни)</th><th>Цена (₽)</th><th>Действия</th></tr>
+      ${plans.map(p => `<tr>
+        <td class="mono">${esc(p.id)}</td>
+        <td>${esc(p.title)}</td>
+        <td><span class="badge badge-inactive">${esc(p.subtitle)}</span></td>
+        <td>${p.duration_days}</td>
+        <td style="font-weight:bold; color:var(--success)">${p.price_rub} ₽</td>
+        <td>
+          <div class="inline-actions">
+            <button class="btn btn-ghost btn-sm" onclick="editPlanPrice('${esc(p.id)}', ${p.price_rub})"><i data-lucide="edit-3" style="width:14px;height:14px;"></i> Изменить цену</button>
+          </div>
+        </td>
+      </tr>`).join('')}
+    </table></div>`;
+  } catch (e) {
+    target.innerHTML = `<div class="error">Ошибка: ${esc(e.message)}</div>`;
+  }
+}
+
+async function editPlanPrice(planId, currentPrice) {
+  const newPrice = await showModal('Изменить цену', `
+    <div class="form-group">
+      <label>Новая цена для ${esc(planId)} (в рублях)</label>
+      <input type="number" id="modalPlanPrice" value="${currentPrice}" min="0">
+    </div>
+  `);
+  if (newPrice !== null) {
+    const val = parseInt(document.getElementById('modalPlanPrice').value);
+    if (isNaN(val) || val < 0) { toast('Некорректная цена', 'error'); return; }
+    try {
+      await apiRequest('PUT', `/v1/admin/catalog/plans/${planId}/price`, { price_rub: val });
+      toast('Цена успешно изменена!');
+      loadPlans();
+    } catch (e) {
+      toast(e.message, 'error');
+    }
+  }
+}
+
+// ── Users ──
+let usersOffset = 0;
+const usersLimit = 20;
+
+async function loadUsers(offset = 0) {
+  usersOffset = offset;
+  const target = document.getElementById('usersTable');
+  target.innerHTML = skeletonTable(6);
+  const search = document.getElementById('userSearch').value.trim();
+  const subStatus = document.getElementById('userSubFilter').value;
+  let qs = `?offset=${offset}&limit=${usersLimit}`;
+  if (search) qs += `&search=${encodeURIComponent(search)}`;
+  if (subStatus) qs += `&subscription_status=${subStatus}`;
+  try {
+    const data = await apiGet('/v1/admin/users' + qs);
+    if (!data.users.length) { target.innerHTML = '<div class="empty-state">Нет пользователей</div>'; return; }
+    setTimeout(()=>lucide.createIcons(),0);
+target.innerHTML = `<div class="table-wrap"><table>
+      <tr><th>Пользователь</th><th>Telegram</th><th>Подписка</th><th>Роль</th><th>Активность</th><th>Действия</th></tr>
+      ${data.users.map(u => `<tr>
+        <td><strong>${esc(u.display_name)}</strong><br><span class="mono" style="font-size:12px;color:var(--text-muted)">${esc(u.user_id.slice(0,16))}</span></td>
+        <td>${u.telegram_linked ? esc(u.telegram_handle || '—') : '<span style="color:var(--text-muted)">Не привязан</span>'}</td>
+        <td>${subBadge(u.subscription_status, u.plan_title)}</td>
+        <td>${u.role === 'admin' ? '<span class="badge badge-primary">admin</span>' : '<span style="color:var(--text-muted)">user</span>'}${u.blocked ? ' <span class="badge badge-danger">blocked</span>' : ''}</td>
+        <td style="font-size:12px;color:var(--text-muted)">${u.last_seen_at ? fmtDate(u.last_seen_at) : '—'}</td>
+        <td>
+          <div class="inline-actions">
+            <button class="btn btn-sm btn-ghost" onclick="openUserDetail('${esc(u.user_id)}')">Открыть</button>
+            ${u.subscription_status !== 'active' ? `
+              <button class="btn btn-sm btn-success" onclick="grantPlan('${esc(u.user_id)}','monthly_1')">1м</button>
+              <button class="btn btn-sm btn-success" onclick="grantPlan('${esc(u.user_id)}','quarterly_3')">3м</button>
+            ` : `
+              <button class="btn btn-sm btn-primary" onclick="sendSubLink('${esc(u.user_id)}')">Ссылка</button>
+              <button class="btn btn-sm btn-danger" onclick="revokeSub('${esc(u.user_id)}')">Отозвать</button>
+            `}
+            ${u.blocked ? `<button class="btn btn-sm btn-success" onclick="unblockUser('${esc(u.user_id)}')">Разблок</button>` : `<button class="btn btn-sm btn-ghost" onclick="blockUser('${esc(u.user_id)}')">Блок</button>`}
+          </div>
+        </td>
+      </tr>`).join('')}
+    </table></div>`;
+
+    const pagEl = document.getElementById('usersPagination');
+    const totalPages = Math.ceil(data.total_count / usersLimit);
+    const currentPage = Math.floor(offset / usersLimit) + 1;
+    pagEl.innerHTML = `
+      <button ${offset === 0 ? 'disabled' : ''} onclick="loadUsers(${offset - usersLimit})">← Назад</button>
+      <span class="page-info">${currentPage} / ${totalPages} (${data.total_count})</span>
+      <button ${offset + usersLimit >= data.total_count ? 'disabled' : ''} onclick="loadUsers(${offset + usersLimit})">Вперёд →</button>
+    `;
+  } catch (e) { target.innerHTML = `<div class="empty-state">Ошибка: ${esc(e.message)}</div>`; }
+}
+
+function subBadge(status, planTitle) {
+  const badge = { active: 'badge-active', inactive: 'badge-inactive', expired: 'badge-pending', revoked: 'badge-danger' }[status] || 'badge-inactive';
+  const label = { active: 'Активна', inactive: 'Нет', expired: 'Истекла', revoked: 'Отозвана' }[status] || status;
+  return `<span class="badge ${badge}">${esc(label)}</span>${planTitle ? `<br><span style="font-size:12px;color:var(--text-muted)">${esc(planTitle)}</span>` : ''}`;
+}
+
+async function grantPlan(userId, planId) {
+  try {
+    await apiPost(`/v1/admin/users/${userId}/subscription/grant`, { plan_id: planId });
+    toast('Подписка выдана.');
+    loadUsers(usersOffset); openUserDetail(userId, true);
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+async function revokeSub(userId) {
+  if (!confirm('Отозвать подписку?')) return;
+  try {
+    await apiPost(`/v1/admin/users/${userId}/subscription/revoke`, { reason: 'admin_revoked' });
+    toast('Подписка отозвана.'); loadUsers(usersOffset); openUserDetail(userId, true);
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+async function blockUser(userId) {
+  if (!confirm('Заблокировать пользователя?')) return;
+  try {
+    await apiPost(`/v1/admin/users/${userId}/block`);
+    toast('Пользователь заблокирован.'); loadUsers(usersOffset); openUserDetail(userId, true);
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+async function unblockUser(userId) {
+  try {
+    await apiPost(`/v1/admin/users/${userId}/unblock`);
+    toast('Пользователь разблокирован.'); loadUsers(usersOffset); openUserDetail(userId, true);
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+async function openUserDetail(userId, quiet = false) {
+  const box = document.getElementById('userDetail');
+  if (!quiet) box.innerHTML = skeletonTable(3);
+  try {
+    const data = await apiGet(`/v1/admin/users/${userId}`);
+    const u = data.user;
+    const summary = data.summary || {};
+    const subscription = summary.subscription || {};
+    const devices = summary.devices || [];
+    const orders = summary.orders || [];
+    box.innerHTML = `
+      <div class="detail-panel">
+        <div class="inline-actions" style="justify-content:space-between">
+          <div>
+            <div class="section-title" style="margin-bottom:4px">${esc(u.display_name)}</div>
+            <div class="mono" style="font-size:12px;color:var(--text-muted)">${esc(u.user_id)}</div>
+          </div>
+          <button class="btn btn-sm btn-ghost" onclick="document.getElementById('userDetail').innerHTML=''"><i data-lucide="x" style="width:14px;height:14px;"></i> Закрыть</button>
+        </div>
+        <div class="detail-grid">
+          ${detailItem('Telegram', u.telegram_linked ? `${u.telegram_handle || ''} / ${u.telegram_user_id || ''}` : 'Не привязан')}
+          ${detailItem('Email', u.email || '—')}
+          ${detailItem('Роль', `${u.role}${u.blocked ? ' / blocked' : ''}`)}
+          ${detailItem('Подписка', `${subscription.status || u.subscription_status || '—'} ${subscription.plan_title || u.plan_title || ''}`)}
+          ${detailItem('Истекает', subscription.expires_at ? fmtDate(subscription.expires_at) : '—')}
+          ${detailItem('Устройств', String(devices.length))}
+        </div>
+        <div class="toolbar">
+          <button class="btn btn-sm btn-success" onclick="grantPlan('${esc(u.user_id)}','monthly_1')">+1 мес</button>
+          <button class="btn btn-sm btn-success" onclick="grantPlan('${esc(u.user_id)}','quarterly_3')">+3 мес</button>
+          <button class="btn btn-sm btn-success" onclick="grantPlan('${esc(u.user_id)}','semiannual_6')">+6 мес</button>
+          <button class="btn btn-sm btn-success" onclick="grantPlan('${esc(u.user_id)}','yearly_12')">+12 мес</button>
+          <button class="btn btn-sm btn-primary" onclick="sendSubLink('${esc(u.user_id)}')">Отправить ссылку</button>
+          <button class="btn btn-sm btn-warning" onclick="rotateSubLink('${esc(u.user_id)}')">Перевыпустить</button>
+          <button class="btn btn-sm btn-danger" onclick="revokeSub('${esc(u.user_id)}')">Снять подписку</button>
+          ${u.blocked ? `<button class="btn btn-sm btn-success" onclick="unblockUser('${esc(u.user_id)}')">Разблокировать</button>` : `<button class="btn btn-sm btn-ghost" onclick="blockUser('${esc(u.user_id)}')">Заблокировать</button>`}
+          <button class="btn btn-sm btn-ghost" onclick="editUserProfile('${esc(u.user_id)}')"><i data-lucide="edit-2" style="width:14px;height:14px;"></i> Профиль</button>
+          <button class="btn btn-sm btn-danger" onclick="deleteUser('${esc(u.user_id)}')"><i data-lucide="trash-2" style="width:14px;height:14px;"></i> Удалить</button>
+        </div>
+        <div class="detail-grid">
+          ${detailItem('Последние заказы', orders.length ? orders.slice(0, 5).map(o => `${o.plan_title || o.plan_id}: ${o.status} (${o.amount_rub || 0} ₽)`).join('\\n') : '—')}
+          ${detailItem('Устройства', devices.length ? devices.slice(0, 6).map(d => `${d.device_label || d.device_id} · ${d.platform || 'unknown'}`).join('\\n') : '—')}
+        </div>
+      </div>`;
+  } catch (e) { if (!quiet) box.innerHTML = `<div class="empty-state">Ошибка: ${esc(e.message)}</div>`; }
+}
+
+async function editUserProfile(userId) {
+  let currentName = '', currentEmail = '';
+  try {
+    const data = await apiGet(`/v1/admin/users/${userId}`);
+    currentName = data.user?.display_name || '';
+    currentEmail = data.user?.email || '';
+  } catch {}
+
+  showModal('Редактировать профиль', `
+    <div class="form-group"><label>Имя</label><input type="text" id="modalName" value="${esc(currentName)}"></div>
+    <div class="form-group"><label>Email</label><input type="email" id="modalEmail" value="${esc(currentEmail)}"></div>
+  `, async (backdrop) => {
+    const displayName = backdrop.querySelector('#modalName').value.trim();
+    const email = backdrop.querySelector('#modalEmail').value.trim();
+    try {
+      await apiPost(`/v1/admin/users/${userId}/profile`, {
+        display_name: displayName || null, email: email || null,
+      });
+      toast('Профиль обновлен.'); loadUsers(usersOffset); openUserDetail(userId, true);
+    } catch (e) { toast(e.message, 'error'); }
+  });
+}
+
+async function sendSubLink(userId) {
+  try {
+    const data = await apiPost(`/v1/admin/users/${userId}/subscription-link/send`);
+    toast('Ссылка отправлена.');
+    showOutput('userDetail', 'Subscription URL', data.subscription_url);
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+async function rotateSubLink(userId) {
+  if (!confirm('Перевыпустить subscription-ссылку? Старая ссылка перестанет работать.')) return;
+  try {
+    const data = await apiPost(`/v1/admin/users/${userId}/subscription-link/rotate`);
+    toast('Ссылка перевыпущена.');
+    showOutput('userDetail', 'Новая subscription URL', data.subscription_url);
+    openUserDetail(userId, true);
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+async function deleteUser(userId) {
+  if (!confirm('Удалить пользователя из базы? Это действие нельзя отменить.')) return;
+  try {
+    await apiPost(`/v1/admin/users/${userId}/delete`);
+    toast('Пользователь удален.'); document.getElementById('userDetail').innerHTML = ''; loadUsers(usersOffset);
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+// ── Orders ──
+async function loadOrders() {
+  const target = document.getElementById('ordersTable');
+  target.innerHTML = skeletonTable(5);
+  const status = document.getElementById('orderStatusFilter').value;
+  let qs = '?limit=50';
+  if (status) qs += `&status=${status}`;
+  try {
+    const data = await apiGet('/v1/admin/orders' + qs);
+    if (!data.orders.length) { target.innerHTML = '<div class="empty-state">Нет заказов</div>'; return; }
+    setTimeout(()=>lucide.createIcons(),0);
+target.innerHTML = `<div class="table-wrap"><table>
+      <tr><th>ID</th><th>Тариф</th><th>Сумма</th><th>Промокод</th><th>Статус</th><th>Дата</th><th>Действия</th></tr>
+      ${data.orders.map(o => `<tr>
+        <td><span class="mono" style="font-size:12px">${esc(o.order_id.slice(0,12))}</span></td>
+        <td>${esc(o.plan_title)}<br><span style="font-size:12px;color:var(--text-muted)">${o.duration_days} дн.</span></td>
+        <td><strong>${o.amount_rub} ₽</strong>${o.discount_amount_rub ? `<br><span style="font-size:12px;color:var(--success)">-${o.discount_amount_rub} ₽</span>` : ''}</td>
+        <td>${o.promo_code ? `<span class="badge badge-active">${esc(o.promo_code)}</span>` : '—'}</td>
+        <td>${orderBadge(o.status)}</td>
+        <td style="font-size:12px;color:var(--text-muted)">${fmtDate(o.created_at)}</td>
+        <td>${o.status === 'waiting_confirmation' || o.status === 'pending_payment' ? `
+          <div class="inline-actions">
+            <button class="btn btn-sm btn-success" onclick="approveOrder('${esc(o.order_id)}')"><i data-lucide="check" style="width:14px;height:14px;"></i></button>
+            <button class="btn btn-sm btn-danger" onclick="rejectOrder('${esc(o.order_id)}')"><i data-lucide="x" style="width:14px;height:14px;"></i></button>
+          </div>` : ''}</td>
+      </tr>`).join('')}
+    </table></div>`;
+  } catch (e) { target.innerHTML = `<div class="empty-state">Ошибка: ${esc(e.message)}</div>`; }
+}
+
+function orderBadge(status) {
+  const map = {
+    pending_payment: ['badge-pending', 'Ожидает оплаты'], waiting_confirmation: ['badge-pending', 'На проверке'],
+    confirmed: ['badge-active', 'Подтверждён'], rejected: ['badge-danger', 'Отклонён'], canceled: ['badge-inactive', 'Отменён'],
+  };
+  const [cls, label] = map[status] || ['badge-inactive', status];
+  return `<span class="badge ${cls}">${esc(label)}</span>`;
+}
+
+async function approveOrder(orderId) {
+  if (!confirm('Подтвердить заказ?')) return;
+  try { await apiPost(`/v1/admin/orders/${orderId}/approve`); toast('Заказ подтверждён.'); loadOrders(); checkPendingOrders(); } catch (e) { toast(e.message, 'error'); }
+}
+
+async function rejectOrder(orderId) {
+  if (!confirm('Отклонить заказ?')) return;
+  try { await apiPost(`/v1/admin/orders/${orderId}/reject`); toast('Заказ отклонён.'); loadOrders(); checkPendingOrders(); } catch (e) { toast(e.message, 'error'); }
+}
+
+// ── Sources ──
+async function loadCatalogStatus() {
+  const box = document.getElementById('catalogStatusBox');
+  box.innerHTML = skeletonTable(2);
+  try {
+    const data = await apiGet('/v1/admin/catalog-status');
+    box.innerHTML = `<div class="detail-panel"><div class="detail-grid">
+      ${detailItem('Marzban locations', data.marzban_locations)}
+      ${detailItem('Источники', data.external_sources)}
+      ${detailItem('Опубликовано', data.published_entries)}
+      ${detailItem('Скрыто', data.hidden_entries)}
+      ${detailItem('Отключено', data.disabled_entries)}
+      ${detailItem('Последняя синхронизация', data.last_synced_at ? fmtDate(data.last_synced_at) : '—')}
+    </div></div>`;
+  } catch (e) { box.innerHTML = `<div class="empty-state">Ошибка: ${esc(e.message)}</div>`; }
+}
+
+async function loadSources() {
+  const target = document.getElementById('sourcesTable');
+  target.innerHTML = skeletonTable(3);
+  try {
+    const data = await apiGet('/v1/admin/sources?limit=200');
+    updateCatalogSourceFilter(data.sources || []);
+    if (!data.sources.length) { target.innerHTML = '<div class="empty-state">Источников пока нет</div>'; return; }
+    setTimeout(()=>lucide.createIcons(),0);
+target.innerHTML = `<div class="table-wrap"><table>
+      <tr><th>Источник</th><th>Тип</th><th>Серверы</th><th>Синхронизация</th><th>Статус</th><th>Действия</th></tr>
+      ${data.sources.map(s => `<tr>
+        <td><strong>${esc(s.title)}</strong><br><span class="mono" style="font-size:12px;color:var(--text-muted)">${esc(s.source_id)}</span></td>
+        <td>${sourceKindLabel(s.kind)}</td>
+        <td>${s.entry_count} всего<br><span style="font-size:12px;color:var(--text-muted)">${s.published_count} pub / ${s.hidden_count} hid / ${s.disabled_count} off</span></td>
+        <td style="font-size:12px;color:var(--text-muted)">${s.last_synced_at ? fmtDate(s.last_synced_at) : '—'}</td>
+        <td>${s.last_error ? `<span class="badge badge-danger">Ошибка</span><br><span style="font-size:12px;color:var(--danger)">${esc(s.last_error)}</span>` : '<span class="badge badge-active">OK</span>'}</td>
+        <td><div class="inline-actions">
+          <button class="btn btn-sm btn-ghost" onclick="viewSource('${esc(s.source_id)}')">Открыть</button>
+          <button class="btn btn-sm btn-success" onclick="syncSource('${esc(s.source_id)}')">Sync</button>
+          <button class="btn btn-sm btn-ghost" onclick="renameSource('${esc(s.source_id)}')">Имя</button>
+          <button class="btn btn-sm btn-warning" onclick="loadCatalogForSource('${esc(s.source_id)}')">Серверы</button>
+          <button class="btn btn-sm btn-danger" onclick="deleteSource('${esc(s.source_id)}')">Удалить</button>
+        </div></td>
+      </tr>`).join('')}
+    </table></div>`;
+  } catch (e) { target.innerHTML = `<div class="empty-state">Ошибка: ${esc(e.message)}</div>`; }
+}
+
+function sourceKindLabel(kind) {
+  return { raw_links: 'Raw-ссылки', subscription_url: 'Sub URL', marzban_import: 'Marzban' }[kind] || kind;
+}
+
+async function createSource() {
+  const kind = document.getElementById('sourceKind').value;
+  const title = document.getElementById('sourceTitle').value.trim();
+  const sourceText = document.getElementById('sourceText').value.trim();
+  if (!sourceText) { toast('Вставьте ссылки или subscription URL.', 'error'); return; }
+  try {
+    const data = await apiPost('/v1/admin/sources', { kind, title: title || null, source_text: sourceText });
+    toast(`Источник добавлен: ${data.imported_count} серверов.`);
+    document.getElementById('sourceTitle').value = '';
+    document.getElementById('sourceText').value = '';
+    await loadSources(); await loadCatalogStatus();
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+async function viewSource(sourceId) {
+  try {
+    const data = await apiGet(`/v1/admin/sources/${sourceId}`);
+    const s = data.source;
+    document.getElementById('catalogStatusBox').innerHTML = `
+      <div class="detail-panel">
+        <div class="inline-actions" style="justify-content:space-between">
+          <div class="section-title" style="margin-bottom:0">${esc(s.title)}</div>
+          <button class="btn btn-sm btn-ghost" onclick="document.getElementById('catalogStatusBox').innerHTML=''"><i data-lucide="x" style="width:14px;height:14px;"></i></button>
+        </div>
+        <div class="detail-grid">
+          ${detailItem('ID', s.source_id)} ${detailItem('Тип', sourceKindLabel(s.kind))}
+          ${detailItem('Добавил', s.created_by)} ${detailItem('Создан', fmtDate(s.created_at))}
+          ${detailItem('Синхронизация', s.last_synced_at ? fmtDate(s.last_synced_at) : '—')}
+          ${detailItem('Серверы', `${s.entry_count} всего, ${s.published_count} pub, ${s.hidden_count} hid, ${s.disabled_count} off`)}
+        </div>
+        <div style="margin-top:12px" class="code-box">${esc(s.source_text)}</div>
+      </div>`;
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+async function syncSource(sourceId) {
+  try {
+    const data = await apiPost(`/v1/admin/sources/${sourceId}/sync`);
+    toast(`Синхронизировано: ${data.imported_count} серверов.`); loadSources(); loadCatalogStatus();
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+async function renameSource(sourceId) {
+  let currentTitle = '';
+  try { const data = await apiGet(`/v1/admin/sources/${sourceId}`); currentTitle = data.source?.title || ''; } catch {}
+  showModal('Переименовать источник', `
+    <div class="form-group"><label>Название</label><input type="text" id="modalSourceName" value="${esc(currentTitle)}"></div>
+  `, async (backdrop) => {
+    const title = backdrop.querySelector('#modalSourceName').value.trim();
+    try { await apiPost(`/v1/admin/sources/${sourceId}/rename`, { title }); toast('Источник переименован.'); loadSources(); } catch (e) { toast(e.message, 'error'); }
+  });
+}
+
+async function deleteSource(sourceId) {
+  if (!confirm('Удалить источник и все его серверы?')) return;
+  try {
+    await apiPost(`/v1/admin/sources/${sourceId}/delete`);
+    toast('Источник удален.'); document.getElementById('catalogStatusBox').innerHTML = ''; loadSources(); loadCatalog(0);
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+function updateCatalogSourceFilter(sources) {
+  const select = document.getElementById('catalogSourceFilter');
+  if (!select) return;
+  const current = select.value;
+  select.innerHTML = '<option value="">Все источники</option>' + sources.map(s =>
+    `<option value="${esc(s.source_id)}">${esc(s.title)} (${s.entry_count})</option>`
+  ).join('');
+  select.value = [...select.options].some(o => o.value === current) ? current : '';
+}
+
+function loadCatalogForSource(sourceId) {
+  showPage('catalog');
+  document.getElementById('catalogSourceFilter').value = sourceId;
+  loadCatalog(0);
+}
+
+// ── Catalog ──
+let catalogOffset = 0;
+const catalogLimit = 30;
+
+async function ensureSourcesForCatalog() {
+  const select = document.getElementById('catalogSourceFilter');
+  if (select.options.length > 1) return;
+  try { const data = await apiGet('/v1/admin/sources?limit=200'); updateCatalogSourceFilter(data.sources || []); } catch {}
+}
+
+async function loadCatalog(offset = 0) {
+  catalogOffset = Math.max(0, offset);
+  await ensureSourcesForCatalog();
+  const target = document.getElementById('catalogTable');
+  target.innerHTML = skeletonTable(5);
+  const sourceId = document.getElementById('catalogSourceFilter').value;
+  const includeHidden = document.getElementById('catalogHiddenFilter').value;
+  let qs = `?offset=${catalogOffset}&limit=${catalogLimit}&include_hidden=${includeHidden}`;
+  if (sourceId) qs += `&source_id=${encodeURIComponent(sourceId)}`;
+  try {
+    const data = await apiGet('/v1/admin/catalog/entries' + qs);
+    const entries = data.entries || [];
+    if (!entries.length) { target.innerHTML = '<div class="empty-state">Серверов нет</div>'; document.getElementById('catalogPagination').innerHTML = ''; return; }
+    setTimeout(()=>lucide.createIcons(),0);
+target.innerHTML = `<div class="table-wrap"><table>
+      <tr><th>Сервер</th><th>Источник</th><th>Protocol</th><th>Host</th><th>Статус</th><th>Действия</th></tr>
+      ${entries.map(e => {
+        const loc = e.location || {};
+        return `<tr>
+          <td><strong>${esc(loc.display_name || e.display_override || 'Без названия')}</strong><br><span class="mono" style="font-size:12px;color:var(--text-muted)">${esc(e.entry_id.slice(0,18))}</span></td>
+          <td>${esc(e.source_title || '—')}</td>
+          <td>${esc(loc.protocol || '—')}<br><span style="font-size:12px;color:var(--text-muted)">${esc(loc.network || '')} ${esc(loc.security_mode || '')}</span></td>
+          <td>${esc(loc.host || '—')}${loc.port ? ':' + loc.port : ''}<br><span style="font-size:12px;color:var(--text-muted)">${esc(loc.country || '')} ${esc(loc.city || '')}</span></td>
+          <td>${catalogStateBadge(e.publish_state)}</td>
+          <td><div class="inline-actions">
+            <button class="btn btn-sm btn-ghost" onclick="viewCatalogEntry('${esc(e.entry_id)}')">Откр.</button>
+            <button class="btn btn-sm btn-success" onclick="setCatalogState('${esc(e.entry_id)}','published')">Pub</button>
+            <button class="btn btn-sm btn-ghost" onclick="setCatalogState('${esc(e.entry_id)}','hidden')">Hide</button>
+            <button class="btn btn-sm btn-warning" onclick="setCatalogState('${esc(e.entry_id)}','disabled')">Off</button>
+            <button class="btn btn-sm btn-ghost" onclick="renameCatalogEntry('${esc(e.entry_id)}')">Имя</button>
+            <button class="btn btn-sm btn-danger" onclick="deleteCatalogEntry('${esc(e.entry_id)}')">Удл.</button>
+          </div></td>
+        </tr>`;
+      }).join('')}
+    </table></div>`;
+    document.getElementById('catalogPagination').innerHTML = `
+      <button ${catalogOffset === 0 ? 'disabled' : ''} onclick="loadCatalog(${catalogOffset - catalogLimit})">← Назад</button>
+      <span class="page-info">offset ${catalogOffset}</span>
+      <button ${entries.length < catalogLimit ? 'disabled' : ''} onclick="loadCatalog(${catalogOffset + catalogLimit})">Вперёд →</button>
+    `;
+  } catch (e) { target.innerHTML = `<div class="empty-state">Ошибка: ${esc(e.message)}</div>`; }
+}
+
+function catalogStateBadge(state) {
+  const map = { published: ['badge-active', 'Опубликован'], hidden: ['badge-pending', 'Скрыт'], disabled: ['badge-danger', 'Отключен'] };
+  const [cls, label] = map[state] || ['badge-inactive', state || 'unknown'];
+  return `<span class="badge ${cls}">${esc(label)}</span>`;
+}
+
+async function viewCatalogEntry(entryId) {
+  const box = document.getElementById('catalogDetail');
+  box.innerHTML = skeletonTable(3);
+  try {
+    const data = await apiGet(`/v1/admin/catalog/entries/${entryId}`);
+    const e = data.entry; const loc = e.location || {};
+    box.innerHTML = `<div class="detail-panel">
+      <div class="inline-actions" style="justify-content:space-between">
+        <div><div class="section-title" style="margin-bottom:4px">${esc(loc.display_name || e.display_override || 'Сервер')}</div>
+        <div class="mono" style="font-size:12px;color:var(--text-muted)">${esc(e.entry_id)}</div></div>
+        <button class="btn btn-sm btn-ghost" onclick="document.getElementById('catalogDetail').innerHTML=''"><i data-lucide="x" style="width:14px;height:14px;"></i></button>
+      </div>
+      <div class="detail-grid">
+        ${detailItem('Источник', `${e.source_title} (${e.source_id})`)} ${detailItem('Статус', e.publish_state)}
+        ${detailItem('Protocol', `${loc.protocol || '—'} / ${loc.network || '—'} / ${loc.security_mode || '—'}`)}
+        ${detailItem('Host', `${loc.host || '—'}:${loc.port || ''}`)} ${detailItem('Локация', `${loc.country || ''} ${loc.city || ''}`)}
+        ${detailItem('Latency', loc.latency_ms ? `${loc.latency_ms} ms` : '—')}
+      </div>
+      <div style="margin-top:12px" class="code-box">${esc(JSON.stringify(e.config_variants || {}, null, 2))}</div>
+      <div style="margin-top:12px" class="code-box">${esc(e.share_uri || '')}</div>
+    </div>`;
+  } catch (e) { box.innerHTML = `<div class="empty-state">Ошибка: ${esc(e.message)}</div>`; }
+}
+
+async function setCatalogState(entryId, state) {
+  try { await apiPost(`/v1/admin/catalog/entries/${entryId}/state`, { state }); toast('Статус обновлен.'); loadCatalog(catalogOffset); } catch (e) { toast(e.message, 'error'); }
+}
+
+async function renameCatalogEntry(entryId) {
+  let currentName = '';
+  try { const data = await apiGet(`/v1/admin/catalog/entries/${entryId}`); currentName = data.entry?.location?.display_name || ''; } catch {}
+  showModal('Переименовать сервер', `
+    <div class="form-group"><label>Название</label><input type="text" id="modalServerName" value="${esc(currentName)}"></div>
+  `, async (backdrop) => {
+    const displayName = backdrop.querySelector('#modalServerName').value.trim();
+    try { await apiPost(`/v1/admin/catalog/entries/${entryId}/rename`, { display_name: displayName }); toast('Сервер переименован.'); loadCatalog(catalogOffset); viewCatalogEntry(entryId); } catch (e) { toast(e.message, 'error'); }
+  });
+}
+
+async function deleteCatalogEntry(entryId) {
+  if (!confirm('Удалить сервер из каталога?')) return;
+  try { await apiPost(`/v1/admin/catalog/entries/${entryId}/delete`); toast('Сервер удален.'); document.getElementById('catalogDetail').innerHTML = ''; loadCatalog(catalogOffset); } catch (e) { toast(e.message, 'error'); }
+}
+
+// ── System ──
+async function loadSystem() {
+  const grid = document.getElementById('systemStatsGrid');
+  grid.innerHTML = skeletonGrid(6);
+  document.getElementById('systemInbounds').innerHTML = '';
+  document.getElementById('systemHosts').innerHTML = '';
+  try {
+    const [stats, inbounds, hosts] = await Promise.all([
+      apiGet('/v1/admin/system/stats'), apiGet('/v1/admin/system/inbounds'), apiGet('/v1/admin/system/hosts'),
+    ]);
+    grid.innerHTML = '';
+    [
+      ['Marzban', stats.version || '—'],
+      ['CPU', `${stats.cpu_usage || 0}% / ${stats.cpu_cores || 0} cores`],
+      ['RAM', `${formatBytes(stats.mem_used)} / ${formatBytes(stats.mem_total)}`],
+      ['Users', `${stats.users_active || 0} / ${stats.total_user || 0}`],
+      ['Traffic In', formatBytes(stats.incoming_bandwidth)],
+      ['Traffic Out', formatBytes(stats.outgoing_bandwidth)],
+    ].forEach(([label, value]) => {
+      const card = document.createElement('div');
+      card.className = 'stat-card';
+      card.innerHTML = `<div class="label">${esc(label)}</div><div class="value">${esc(String(value))}</div>`;
+      grid.appendChild(card);
+    });
+    renderInbounds(inbounds || []);
+    renderHosts(hosts || {});
+  } catch (e) { grid.innerHTML = `<div class="empty-state">Ошибка: ${esc(e.message)}</div>`; }
+}
+
+function renderInbounds(inbounds) {
+  const target = document.getElementById('systemInbounds');
+  if (!inbounds.length) { target.innerHTML = '<div class="empty-state">Inbound-ов нет</div>'; return; }
+  target.innerHTML = `<div class="card"><div class="section-title">Inbounds</div><div class="table-wrap"><table>
+    <tr><th>Tag</th><th>Protocol</th><th>Port</th><th>Network</th><th>Security</th></tr>
+    ${inbounds.map(i => `<tr><td>${esc(i.tag)}</td><td>${esc(i.protocol)}</td><td>${esc(String(i.port))}</td><td>${esc(i.network)}</td><td>${esc(i.security)}</td></tr>`).join('')}
+  </table></div></div>`;
+}
+
+function renderHosts(hosts) {
+  document.getElementById('systemHosts').innerHTML = `<div class="card"><div class="section-title">Hosts</div><div class="code-box">${esc(JSON.stringify(hosts, null, 2))}</div></div>`;
+}
+
+async function loadMarzbanUsers() {
+  try { const data = await apiGet('/v1/admin/marzban/users'); showOutput('marzbanOutput', 'Marzban users', JSON.stringify(data, null, 2)); } catch (e) { toast(e.message, 'error'); }
+}
+
+async function createMarzbanUser() {
+  const username = document.getElementById('marzbanUsername').value.trim();
+  const note = document.getElementById('marzbanNote').value.trim() || 'created-via-web-admin';
+  if (!username) { toast('Введите username.', 'error'); return; }
+  try {
+    const data = await apiPost('/v1/admin/marzban/users/create', { username, note });
+    showOutput('marzbanOutput', `Marzban user ${username}`, JSON.stringify(data, null, 2)); toast('Marzban user создан.');
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+async function getMarzbanUser() {
+  const username = document.getElementById('marzbanUsername').value.trim();
+  if (!username) { toast('Введите username.', 'error'); return; }
+  try { const data = await apiGet(`/v1/admin/marzban/users/${encodeURIComponent(username)}`); showOutput('marzbanOutput', `Marzban user ${username}`, JSON.stringify(data, null, 2)); } catch (e) { toast(e.message, 'error'); }
+}
+
+async function refreshInventory() {
+  const username = document.getElementById('configUsername').value.trim() || 'admin_web_test';
+  try {
+    const data = await apiPost(`/v1/admin/inventory/refresh?username=${encodeURIComponent(username)}`);
+    showOutput('systemOutput', 'Inventory refresh', JSON.stringify(data, null, 2));
+    toast(`Inventory обновлен: ${data.locations?.length || 0} локаций.`);
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+async function getInventoryConfig() {
+  const locationId = document.getElementById('configLocationId').value.trim();
+  const username = document.getElementById('configUsername').value.trim() || 'admin_web_test';
+  if (!locationId) { toast('Введите location_id.', 'error'); return; }
+  try { const data = await apiGet(`/v1/admin/inventory/configs/${encodeURIComponent(locationId)}?username=${encodeURIComponent(username)}`); showOutput('systemOutput', `Config ${locationId}`, JSON.stringify(data, null, 2)); } catch (e) { toast(e.message, 'error'); }
+}
+
+async function runFullFlow() {
+  if (!confirm('Запустить full-flow тест?')) return;
+  try {
+    const data = await apiPost('/v1/admin/test/full-flow');
+    const safe = { ...data, auth_token: data.auth_token ? `${data.auth_token.slice(0, 16)}…` : '' };
+    showOutput('systemOutput', 'Full-flow test', JSON.stringify(safe, null, 2));
+    toast(data.all_ok ? 'Full-flow test прошел.' : 'Full-flow test завершился с ошибками.', data.all_ok ? 'success' : 'error');
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+// ── Promos ──
+async function loadPromos() {
+  const target = document.getElementById('promosTable');
+  target.innerHTML = skeletonTable(3);
+  try {
+    const data = await apiGet('/v1/admin/promos');
+    if (!data.promos.length) { target.innerHTML = '<div class="empty-state">Промокодов пока нет</div>'; return; }
+    setTimeout(()=>lucide.createIcons(),0);
+target.innerHTML = `<div class="table-wrap"><table>
+      <tr><th>Код</th><th>Тип</th><th>Параметр</th><th>Использований</th><th>Статус</th><th>Создан</th><th>Действия</th></tr>
+      ${data.promos.map(p => `<tr>
+        <td><strong class="mono" style="font-size:15px">${esc(p.code)}</strong></td>
+        <td>${p.effect_type === 'free_subscription' ? '🎁 Подписка' : '💸 Скидка'}</td>
+        <td>${p.effect_type === 'free_subscription' ? `${p.duration_days} дн.` : `${p.discount_percent}%`}</td>
+        <td>${p.redemption_count}${p.max_redemptions ? ` / ${p.max_redemptions}` : ''}</td>
+        <td>${p.is_active ? '<span class="badge badge-active">Активен</span>' : '<span class="badge badge-inactive">Отключён</span>'}</td>
+        <td style="font-size:12px;color:var(--text-muted)">${fmtDate(p.created_at)}</td>
+        <td>${p.is_active ? `<button class="btn btn-sm btn-danger" onclick="deactivatePromo('${esc(p.code)}')">Отключить</button>` : ''}</td>
+      </tr>`).join('')}
+    </table></div>`;
+  } catch (e) { target.innerHTML = `<div class="empty-state">Ошибка: ${esc(e.message)}</div>`; }
+}
+
+function togglePromoFields() {
+  const effect = document.getElementById('promoEffect').value;
+  document.getElementById('promoDurationGroup').classList.toggle('hidden', effect !== 'free_subscription');
+  document.getElementById('promoDiscountGroup').classList.toggle('hidden', effect !== 'discount_percent');
+}
+
+async function createPromo() {
+  const code = document.getElementById('promoCode').value.trim();
+  const effect = document.getElementById('promoEffect').value;
+  if (!code) { toast('Введите код промокода.', 'error'); return; }
+  const body = { code, effect_type: effect };
+  if (effect === 'free_subscription') {
+    const days = parseInt(document.getElementById('promoDuration').value);
+    if (!days || days < 1) { toast('Укажите количество дней.', 'error'); return; }
+    body.duration_days = days;
+  } else {
+    const pct = parseInt(document.getElementById('promoDiscount').value);
+    if (!pct || pct < 1 || pct > 99) { toast('Укажите скидку от 1 до 99%.', 'error'); return; }
+    body.discount_percent = pct;
+  }
+  const maxR = parseInt(document.getElementById('promoMaxRedemptions').value);
+  if (maxR > 0) body.max_redemptions = maxR;
+  try {
+    await apiPost('/v1/admin/promos', body); toast('Промокод создан!');
+    document.getElementById('promoCode').value = ''; document.getElementById('promoDuration').value = '';
+    document.getElementById('promoDiscount').value = ''; document.getElementById('promoMaxRedemptions').value = '';
+    loadPromos();
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+async function deactivatePromo(code) {
+  if (!confirm(`Отключить промокод ${code}?`)) return;
+  try { await apiPost(`/v1/admin/promos/${code}/deactivate`); toast('Промокод отключён.'); loadPromos(); } catch (e) { toast(e.message, 'error'); }
+}
+
+// ── Releases ──
+async function loadRelease() {
+  const target = document.getElementById('currentRelease');
+  target.innerHTML = skeletonTable(2);
+  try {
+    const data = await apiGet('/v1/admin/app-release/current');
+    if (!data || data === 'null') { target.innerHTML = '<div class="empty-state">Нет опубликованных релизов</div>'; return; }
+    target.innerHTML = `<div class="release-card">
+      <div class="version">v${esc(data.version_name)} (${data.version_code})</div>
+      <div class="meta">
+        Опубликован: ${fmtDate(data.published_at)}<br>
+        SHA-256: <code class="mono" style="font-size:11px">${esc(data.sha256.slice(0,16))}…</code><br>
+        <a href="${esc(data.download_url)}" target="_blank" style="color:var(--primary)">Скачать APK</a>
+      </div>
+      ${data.release_notes ? `<div style="margin-top:14px;padding:14px;background:rgba(0,0,0,0.3);border-radius:var(--radius-sm);font-size:13px;white-space:pre-wrap">${esc(data.release_notes)}</div>` : ''}
+    </div>`;
+  } catch (e) {
+    if (e.message.includes('404') || e.message.includes('null')) {
+      target.innerHTML = '<div class="empty-state">Нет опубликованных релизов</div>';
+    } else { target.innerHTML = `<div class="empty-state">Ошибка: ${esc(e.message)}</div>`; }
+  }
+}
+
+async function publishRelease() {
+  const vn = document.getElementById('releaseVersionName').value.trim();
+  const vc = parseInt(document.getElementById('releaseVersionCode').value);
+  const notes = document.getElementById('releaseNotes').value.trim();
+  if (!vn || !vc) { toast('Заполните имя и код версии.', 'error'); return; }
+  try {
+    await apiPost('/v1/admin/app-release/publish', { version_name: vn, version_code: vc, release_notes: notes });
+    toast('Релиз опубликован!');
+    document.getElementById('releaseVersionName').value = ''; document.getElementById('releaseVersionCode').value = '';
+    document.getElementById('releaseNotes').value = ''; loadRelease();
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+// ── Helpers ──
+function esc(s) {
+  const div = document.createElement('div');
+  div.textContent = s === null || s === undefined ? '' : String(s);
+  return div.innerHTML;
+}
+function detailItem(label, value) {
+  return `<div class="detail-item"><div class="label">${esc(label)}</div><div class="value">${esc(value)}</div></div>`;
+}
+function showOutput(targetId, title, content) {
+  document.getElementById(targetId).innerHTML = `
+    <div class="detail-panel">
+      <div class="inline-actions" style="justify-content:space-between">
+        <div class="section-title" style="margin-bottom:0">${esc(title)}</div>
+        <button class="btn btn-sm btn-ghost" onclick="document.getElementById('${esc(targetId)}').innerHTML=''"><i data-lucide="x" style="width:14px;height:14px;"></i></button>
+      </div>
+      <div style="margin-top:12px" class="code-box">${esc(content)}</div>
+    </div>`;
+}
+function formatBytes(n) {
+  const value = Number(n || 0);
+  if (value < 1024) return `${value} B`;
+  const units = ['KB', 'MB', 'GB', 'TB'];
+  let size = value / 1024; let i = 0;
+  while (size >= 1024 && i < units.length - 1) { size /= 1024; i++; }
+  return `${size.toFixed(size >= 10 ? 1 : 2)} ${units[i]}`;
+}
+function fmtDate(s) {
+  if (!s) return '—';
+  try {
+    const d = new Date(s);
+    return d.toLocaleDateString('ru-RU') + ' ' + d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+  } catch { return s; }
+}
+
+// ── Auto-init ──
+(async function init() {
+  if (authToken) {
+    try {
+      await apiGet('/v1/admin/dashboard');
+      hideLogin();
+      loadDashboard();
+      startAutoRefresh();
+      lucide.createIcons();
+    } catch {
+      authToken = '';
+      localStorage.removeItem('mefast_admin_token');
+    }
+  }
+})();
+  lucide.createIcons();
+
+// ── Parser ──
+let parserTimer = null;
+let _parserSources = [];
+
+const PROTO_COLORS = {
+  vless: '#6366f1',
+  trojan: '#f59e0b',
+  hysteria2: '#10b981',
+  shadowsocks: '#ec4899'
+};
+
+async function loadParser() {
+  await fetchParserConfig();
+  await fetchParserStatus();
+  await fetchParserHistory();
+  if (!parserTimer) {
+    parserTimer = setInterval(() => {
+      if (_currentPage === 'parser') fetchParserStatus();
+    }, 2000);
+  }
+}
+
+// ── Sources management ──
+function renderParserSources() {
+  const container = document.getElementById('parserSourcesList');
+  container.innerHTML = _parserSources.map((src, i) => `
+    <div style="display:flex; gap:8px; align-items:center; margin-bottom:8px; padding:10px; background:rgba(255,255,255,0.03); border-radius:var(--radius-sm); border:1px solid rgba(255,255,255,0.06);">
+      <input type="checkbox" ${src.enabled ? 'checked' : ''} onchange="_parserSources[${i}].enabled = this.checked" style="width:18px; height:18px;">
+      <input type="text" value="${esc(src.label || '')}" placeholder="Название" onchange="_parserSources[${i}].label = this.value" class="input" style="flex:0 0 160px;">
+      <input type="text" value="${esc(src.url || '')}" placeholder="https://raw.githubusercontent.com/..." onchange="_parserSources[${i}].url = this.value" class="input" style="flex:1;">
+      <button class="btn btn-sm btn-ghost" onclick="_parserSources.splice(${i},1); renderParserSources();" style="color:var(--danger);">✕</button>
+    </div>
+  `).join('');
+}
+
+function addParserSource() {
+  _parserSources.push({ url: '', label: '', enabled: true });
+  renderParserSources();
+}
+
+async function fetchParserConfig() {
+  try {
+    const data = await apiGet('/v1/admin/parser/config');
+    // Multi-source
+    if (data.github_urls) {
+      _parserSources = data.github_urls;
+    } else if (data.github_url) {
+      _parserSources = [{ url: data.github_url, label: 'Default', enabled: true }];
+    } else {
+      _parserSources = [];
+    }
+    renderParserSources();
+
+    document.getElementById('parserLimitVless').value = data.limits?.vless || 0;
+    document.getElementById('parserLimitTrojan').value = data.limits?.trojan || 0;
+    document.getElementById('parserLimitHysteria').value = data.limits?.hysteria2 || 0;
+    document.getElementById('parserLimitSS').value = data.limits?.shadowsocks || 0;
+    document.getElementById('parserMaxPing').value = data.max_ping_ms || 1500;
+    document.getElementById('parserWorkers').value = data.concurrent_workers || 10;
+  } catch(e) { toast('Ошибка загрузки настроек', 'error'); }
+}
+
+async function saveParserConfig() {
+  const payload = {
+    github_urls: _parserSources,
+    limits: {
+      vless: parseInt(document.getElementById('parserLimitVless').value) || 0,
+      trojan: parseInt(document.getElementById('parserLimitTrojan').value) || 0,
+      hysteria2: parseInt(document.getElementById('parserLimitHysteria').value) || 0,
+      shadowsocks: parseInt(document.getElementById('parserLimitSS').value) || 0
+    },
+    max_ping_ms: parseInt(document.getElementById('parserMaxPing').value) || 1500,
+    interval_hours: 6,
+    concurrent_workers: parseInt(document.getElementById('parserWorkers').value) || 10
+  };
+  try {
+    await apiRequest('PUT', '/v1/admin/parser/config', payload);
+    toast('Настройки сохранены!');
+  } catch(e) { toast('Ошибка сохранения', 'error'); }
+}
+
+// ── Status with progress bar + avg ping ──
+async function fetchParserStatus() {
+  try {
+    const data = await apiGet('/v1/admin/parser/status');
+    const statusBox = document.getElementById('parserStatusBox');
+    const progressWrap = document.getElementById('parserProgressWrap');
+    const startBtn = document.getElementById('parserStartBtn');
+    const stopBtn = document.getElementById('parserStopBtn');
+
+    let html = '';
+    if (data.is_running) {
+      startBtn.style.display = 'none';
+      stopBtn.style.display = '';
+      progressWrap.style.display = '';
+
+      const tested = data.current_progress?.tested || 0;
+      const total = data.current_progress?.total || 1;
+      const pct = Math.round((tested / total) * 100);
+      document.getElementById('parserProgressLabel').textContent = `${tested} / ${total} ссылок`;
+      document.getElementById('parserProgressPct').textContent = `${pct}%`;
+      document.getElementById('parserProgressBar').style.width = `${pct}%`;
+
+      html += `<div style="color:var(--warning); font-weight:bold; margin-bottom:10px;">🔄 Парсер работает прямо сейчас!</div>`;
+      html += `<div style="margin-top:6px;"><b>Найдено:</b></div>`;
+      const found = data.current_progress?.found || {};
+      for (const [k, v] of Object.entries(found)) {
+        const color = PROTO_COLORS[k] || '#888';
+        html += `<div style="display:flex; align-items:center; gap:6px; margin:3px 0;"><span style="width:10px; height:10px; border-radius:50%; background:${color}; display:inline-block;"></span> ${k.toUpperCase()}: <b>${v}</b></div>`;
+      }
+    } else {
+      startBtn.style.display = '';
+      stopBtn.style.display = 'none';
+      progressWrap.style.display = 'none';
+
+      html += `<div style="color:var(--success); font-weight:bold; margin-bottom:10px;">💤 Парсер в ожидании</div>`;
+      if (data.last_run_at) {
+        const d = new Date(data.last_run_at);
+        html += `<div>Последний запуск: ${d.toLocaleString()} (${data.last_run_duration || 0} сек)</div>`;
+        html += `<div style="margin-top:6px;"><b>Было найдено:</b></div>`;
+        const found = data.last_run_found || {};
+        for (const [k, v] of Object.entries(found)) {
+          const color = PROTO_COLORS[k] || '#888';
+          html += `<div style="display:flex; align-items:center; gap:6px; margin:3px 0;"><span style="width:10px; height:10px; border-radius:50%; background:${color}; display:inline-block;"></span> ${k.toUpperCase()}: <b>${v}</b></div>`;
+        }
+      }
+    }
+    statusBox.innerHTML = html;
+
+    // Average ping
+    const avgPing = data.avg_ping || {};
+    const pingBox = document.getElementById('parserAvgPingBox');
+    if (Object.keys(avgPing).length > 0) {
+      let pingHtml = '<div style="margin-top:4px;"><b>Средний пинг:</b></div><div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:4px;">';
+      for (const [k, v] of Object.entries(avgPing)) {
+        const color = PROTO_COLORS[k] || '#888';
+        const pingColor = v < 500 ? 'var(--success)' : v < 1000 ? 'var(--warning)' : 'var(--danger)';
+        pingHtml += `<div style="padding:6px 12px; background:rgba(255,255,255,0.04); border-radius:6px; border-left:3px solid ${color};">
+          <div style="font-size:11px; opacity:0.7;">${k.toUpperCase()}</div>
+          <div style="font-size:16px; font-weight:700; color:${pingColor};">${v} мс</div>
+        </div>`;
+      }
+      pingHtml += '</div>';
+      pingBox.innerHTML = pingHtml;
+    } else {
+      pingBox.innerHTML = '';
+    }
+  } catch(e) {
+    document.getElementById('parserStatusBox').innerHTML = 'Ошибка статуса';
+  }
+}
+
+// ── History chart (pure SVG) ──
+async function fetchParserHistory() {
+  try {
+    const history = await apiGet('/v1/admin/parser/history');
+    drawHistoryChart(history);
+  } catch(e) {
+    document.getElementById('parserHistoryChart').innerHTML = '<div style="opacity:0.5;">Нет данных</div>';
+  }
+}
+
+function drawHistoryChart(history) {
+  const container = document.getElementById('parserHistoryChart');
+  const legend = document.getElementById('parserHistoryLegend');
+
+  if (!history || history.length === 0) {
+    container.innerHTML = '<div style="display:flex; align-items:center; justify-content:center; height:100%; opacity:0.4;">Нет данных. Запустите парсер хотя бы один раз.</div>';
+    legend.innerHTML = '';
+    return;
+  }
+
+  const protocols = Object.keys(PROTO_COLORS);
+  const W = 700, H = 200, padL = 40, padR = 10, padT = 10, padB = 30;
+  const chartW = W - padL - padR;
+  const chartH = H - padT - padB;
+
+  // Find max value
+  let maxVal = 1;
+  history.forEach(h => {
+    protocols.forEach(p => {
+      const v = h.found?.[p] || 0;
+      if (v > maxVal) maxVal = v;
+    });
+  });
+  maxVal = Math.ceil(maxVal * 1.2);
+
+  const barGroupW = chartW / history.length;
+  const barW = Math.max(4, (barGroupW - 4) / protocols.length);
+
+  let svg = `<svg viewBox="0 0 ${W} ${H}" style="width:100%; height:100%;" preserveAspectRatio="xMidYMid meet">`;
+
+  // Grid lines
+  for (let i = 0; i <= 4; i++) {
+    const y = padT + (chartH / 4) * i;
+    const val = Math.round(maxVal - (maxVal / 4) * i);
+    svg += `<line x1="${padL}" y1="${y}" x2="${W - padR}" y2="${y}" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>`;
+    svg += `<text x="${padL - 6}" y="${y + 4}" text-anchor="end" fill="rgba(255,255,255,0.4)" font-size="10">${val}</text>`;
+  }
+
+  // Bars
+  history.forEach((h, idx) => {
+    const gx = padL + idx * barGroupW + 2;
+    protocols.forEach((p, pi) => {
+      const val = h.found?.[p] || 0;
+      const barH = (val / maxVal) * chartH;
+      const x = gx + pi * barW;
+      const y = padT + chartH - barH;
+      svg += `<rect x="${x}" y="${y}" width="${barW - 1}" height="${barH}" fill="${PROTO_COLORS[p]}" rx="2" opacity="0.85">
+        <title>${p.toUpperCase()}: ${val} (${new Date(h.date).toLocaleDateString()})</title>
+      </rect>`;
+    });
+    // Date label
+    const dateStr = new Date(h.date).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' });
+    if (history.length <= 15 || idx % 2 === 0) {
+      svg += `<text x="${gx + barGroupW / 2}" y="${H - 4}" text-anchor="middle" fill="rgba(255,255,255,0.4)" font-size="9">${dateStr}</text>`;
+    }
+  });
+
+  svg += '</svg>';
+  container.innerHTML = svg;
+
+  // Legend
+  legend.innerHTML = protocols.map(p =>
+    `<div style="display:flex; align-items:center; gap:4px;">
+      <span style="width:10px; height:10px; border-radius:2px; background:${PROTO_COLORS[p]};"></span>
+      ${p.toUpperCase()}
+    </div>`
+  ).join('');
+}
+
+// ── Start / Stop ──
+async function startParser() {
+  try {
+    const res = await apiRequest('POST', '/v1/admin/parser/start', {});
+    if (res.status === 'already_running') {
+      toast('Парсер уже запущен!', 'error');
+    } else {
+      toast('Парсер запущен!');
+    }
+    setTimeout(fetchParserStatus, 1500);
+  } catch(e) { toast('Ошибка запуска', 'error'); }
+}
+
+async function stopParser() {
+  try {
+    await apiRequest('POST', '/v1/admin/parser/stop', {});
+    toast('Сигнал остановки отправлен');
+    setTimeout(fetchParserStatus, 2000);
+  } catch(e) { toast('Ошибка остановки', 'error'); }
+}
+
+async function sendBroadcast() {
+  const text = document.getElementById('broadcastText').value.trim();
+  if (!text) { toast('Введите текст сообщения', 'error'); return; }
+  const btn = document.getElementById('btnSendBroadcast');
+  const oldText = btn.innerText;
+  btn.innerText = 'Отправка...';
+  btn.disabled = true;
+  try {
+    const data = await apiRequest('POST', '/v1/admin/telegram/broadcast', { message_text: text });
+    toast(`Рассылка завершена. Отправлено: ${data.sent}, Ошибок: ${data.failed}`);
+    document.getElementById('broadcastText').value = '';
+  } catch(e) {
+    toast(e.message, 'error');
+  } finally {
+    btn.innerText = oldText;
+    btn.disabled = false;
+  }
+}
+</script>
+</body>
+</html>

@@ -655,6 +655,7 @@ class MarzbanClient:
         profile = normalize_routing_profile(routing_profile)
         config = deepcopy(source_config)
         proxy_outbound = deepcopy(outbound)
+        self._normalize_current_xray_transport(proxy_outbound)
         source_outbounds = config.get("outbounds")
         if not isinstance(source_outbounds, list):
             source_outbounds = []
@@ -715,6 +716,39 @@ class MarzbanClient:
             block_tag=block_tag,
         )
         return ensure_local_proxy_inbounds(config)
+
+    @staticmethod
+    def _normalize_current_xray_transport(outbound: dict[str, Any]) -> None:
+        """Normalize transport/reality keys for released Xray clients.
+
+        Released cores up to and including v26.3.x read ``network`` and
+        ``publicKey``; the ``method`` alias for ``network`` exists only in
+        unreleased main, so it is folded back into the stable spelling.
+        ``httpSettings`` was replaced by ``xhttpSettings`` in v26.x.
+        """
+        stream = outbound.get("streamSettings")
+        if not isinstance(stream, dict):
+            return
+
+        network = str(stream.get("network") or stream.get("method") or "").lower()
+        if network in {"raw", "xhttp"}:
+            stream["network"] = network
+            stream.pop("method", None)
+
+        reality = stream.get("realitySettings")
+        if isinstance(reality, dict):
+            public_key = reality.get("publicKey")
+            if not public_key:
+                legacy_password = reality.pop("password", None)
+                if legacy_password:
+                    reality["publicKey"] = legacy_password
+            else:
+                reality.pop("password", None)
+
+        if network == "xhttp" and "xhttpSettings" not in stream:
+            http_settings = stream.pop("httpSettings", None)
+            if isinstance(http_settings, dict):
+                stream["xhttpSettings"] = http_settings
 
     @staticmethod
     def _build_routing_section(

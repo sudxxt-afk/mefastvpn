@@ -4,7 +4,7 @@ import base64
 import json
 from dataclasses import dataclass
 from typing import Any
-from urllib.parse import parse_qs, unquote, urlparse
+from urllib.parse import parse_qs, unquote, urlencode, urlparse, urlunparse
 
 import httpx
 
@@ -412,11 +412,14 @@ class ExternalCatalogImporter:
                 reality_settings["serverName"] = server_name
             if fingerprint:
                 reality_settings["fingerprint"] = fingerprint
-            public_key = self._first(query, "pbk")
+            # Xray 26.x calls the REALITY client public key `password`.
+            # Accept both the newer `pb` spelling used by our node links and
+            # the older `pbk` spelling used by third-party sources.
+            public_key = self._first(query, "pb") or self._first(query, "pbk")
             short_id = self._first(query, "sid")
             spider_x = self._first(query, "spx")
             if public_key:
-                reality_settings["publicKey"] = public_key
+                reality_settings["password"] = public_key
             if short_id:
                 reality_settings["shortId"] = short_id
             if spider_x:
@@ -453,7 +456,13 @@ class ExternalCatalogImporter:
             if header_host:
                 http_settings["host"] = [header_host]
             if http_settings:
-                settings["httpSettings"] = http_settings
+                settings[
+                    "xhttpSettings" if network == "xhttp" else "httpSettings"
+                ] = http_settings
+        if network in {"raw", "xhttp"}:
+            # Keep `network` for catalog identity/legacy consumers, while
+            # also emitting the current Xray transport selector.
+            settings["method"] = network
         return settings
 
     @staticmethod
@@ -496,8 +505,36 @@ class ExternalCatalogImporter:
                     network=network,
                     security_mode=security_mode,
                 )
-                result.setdefault(identity_key, raw_link.strip())
+                result.setdefault(identity_key, self._canonical_share_uri(raw_link))
         return result
+
+    @staticmethod
+    def _canonical_share_uri(raw_link: str) -> str:
+        """Emit VLESS links in the format Happ and current Xray expect.
+
+        Some sources use the old ``pb`` Reality key and ``type=raw``.  Those
+        links can be accepted by Xray itself, but Happ treats them as unknown
+        fields and falls back to the endpoint IP as SNI.  ``pbk`` and
+        ``type=tcp&headerType=none`` are the interoperable spellings for the
+        same Reality/RAW transport.
+        """
+        link = raw_link.strip()
+        if not link.lower().startswith("vless://"):
+            return link
+
+        parsed = urlparse(link)
+        query = parse_qs(parsed.query, keep_blank_values=True)
+        changed = False
+        if "pbk" not in query and "pb" in query:
+            query["pbk"] = query.pop("pb")
+            changed = True
+        if query.get("type", [""])[0].lower() == "raw":
+            query["type"] = ["tcp"]
+            query.setdefault("headerType", ["none"])
+            changed = True
+        if not changed:
+            return link
+        return urlunparse(parsed._replace(query=urlencode(query, doseq=True)))
 
     @classmethod
     def _iter_proxy_outbounds(cls, config: dict[str, Any]) -> list[dict[str, Any]]:

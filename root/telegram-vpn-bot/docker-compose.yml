@@ -1,0 +1,72 @@
+services:
+  nginx:
+    container_name: free_vpn_bot_nginx
+    image: nginx:1.25-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    networks:
+      - free_vpn_bot
+    restart: always
+    environment:
+      DOMAIN: ${DOMAIN}
+      LOCATION: ${SERVER_URL}
+      CERT_FULLCHAIN_PATH: "/etc/nginx/certs/fullchain.pem"
+      CERT_KEY_PATH: "/etc/nginx/certs/privkey.pem"
+    volumes:
+      - ./etc/nginx/templates:/etc/nginx/templates:ro
+      - ./etc/nginx/conf:/etc/nginx/conf.d
+      - ${CERT_FULLCHAIN_PATH}:/etc/nginx/certs/fullchain.pem
+      - ${CERT_KEY_PATH}:/etc/nginx/certs/privkey.pem
+      - ./certbot/data:/var/www/certbot
+  marzban:
+    image: gozargah/marzban:v0.8.4
+    container_name: free_vpn_bot_marzban
+    restart: always
+    env_file: .env.marzban
+    environment:
+      UVICORN_HOST: "0.0.0.0"
+      UVICORN_PORT: "8002"
+      YOUR_DOMAIN: ${DOMAIN}
+    ports:
+      - "8002:8002"
+    networks:
+      - free_vpn_bot
+    volumes:
+      - marz-storage:/code
+      - ./volumes/marzban:/var/lib/marzban
+      - ./certbot/data:/var/www/certbot
+      - /etc/timezone:/etc/timezone:ro
+      - ${CERT_FULLCHAIN_PATH}:/etc/marzban/certs/fullchain.pem
+      - ${CERT_KEY_PATH}:/etc/marzban/certs/privkey.pem
+      - ${CERT_FULLCHAIN_PATH}:${CERT_FULLCHAIN_PATH}
+      - ${CERT_KEY_PATH}:${CERT_KEY_PATH}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "900k"
+        max-file: "10"
+  vpn_bot:
+    image: free_vpn_bot
+    container_name: free_vpn_bot
+    stop_signal: SIGINT
+    build:
+      context: .
+    working_dir: "/usr/src/app"
+    volumes:
+      - .:/usr/src/app
+    command: python3 -m bot
+    restart: always
+    env_file:
+      - ".env"
+    networks:
+      - free_vpn_bot
+    depends_on:
+      - marzban
+networks:
+  free_vpn_bot:
+    driver: bridge
+
+volumes:
+  marz-storage:
+    driver: local

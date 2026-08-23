@@ -24,11 +24,9 @@ class Webhook:
 
     @staticmethod
     def from_env(env: Env):
-        url = env.str('SERVER_URL', default='')
-        domain = env.str('DOMAIN', default='')
+        url = env.str('SERVER_URL')
+        domain = env.str('DOMAIN')
         use_webhook = env.bool('USE_WEBHOOK')
-        if use_webhook and (not url or not domain):
-            raise ValueError('SERVER_URL and DOMAIN are required when USE_WEBHOOK=true')
         return Webhook(url=url, domain=domain, use_webhook=use_webhook)
 
 
