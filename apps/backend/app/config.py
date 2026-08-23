@@ -1,4 +1,5 @@
 import logging
+import re
 
 from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -97,7 +98,20 @@ class Settings(BaseSettings):
     storage_path: str = "./speedy_vpn_data.sqlite3"
     telegram_bot_poll_interval_seconds: float = 3.0
     external_source_timeout_seconds: float = 20.0
+    catalog_allowed_hosts: str = ""
     fcm_server_key: str = ""
+
+    @property
+    def catalog_allowed_host_set(self) -> frozenset[str]:
+        """Hosts allowed in the server catalog; empty means unrestricted."""
+        raw = self.catalog_allowed_hosts.strip()
+        if not raw:
+            return frozenset()
+        return frozenset(
+            part.strip().lower()
+            for part in re.split(r"[,\s]+", raw)
+            if part.strip()
+        )
 
 
 settings = Settings()

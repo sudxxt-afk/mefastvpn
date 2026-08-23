@@ -47,6 +47,26 @@ class ExternalCatalogImporter:
             return self._import_text(source_text)
         raise ValueError(f"Unsupported source kind '{kind}'.")
 
+    def _filter_allowed_hosts(
+        self,
+        entries: list[CatalogEntryPayload],
+        skipped: list[str],
+    ) -> list[CatalogEntryPayload]:
+        """Drop entries hosted outside the allowed node list (if configured)."""
+        allowed = self._settings.catalog_allowed_host_set
+        if not allowed:
+            return entries
+        kept: list[CatalogEntryPayload] = []
+        for entry in entries:
+            host = str(entry.location.host).strip().lower()
+            if host in allowed:
+                kept.append(entry)
+            else:
+                skipped.append(
+                    f"{host}: host is not in the allowed node list"
+                )
+        return kept
+
     def _fetch_subscription_text(self, url: str) -> str:
         response = self._http.get(url)
         response.raise_for_status()
@@ -62,10 +82,13 @@ class ExternalCatalogImporter:
                 configs_or_lines,
                 inbound_catalog={},
             )
-            return ImportResult(entries=self._snapshot_to_entries(snapshot), skipped_messages=[])
+            entries = self._snapshot_to_entries(snapshot)
+            skipped: list[str] = []
+            entries = self._filter_allowed_hosts(entries, skipped)
+            return ImportResult(entries=entries, skipped_messages=skipped)
 
         source_items: list[tuple[str, dict[str, Any]]] = []
-        skipped: list[str] = []
+        skipped = []
         for line in configs_or_lines:
             try:
                 source_items.append((line, self._parse_proxy_link(line)))
@@ -81,11 +104,13 @@ class ExternalCatalogImporter:
             source_configs,
             inbound_catalog={},
         )
+        entries = self._snapshot_to_entries(
+            snapshot,
+            share_uri_by_identity=self._share_uri_by_identity(source_items),
+        )
+        entries = self._filter_allowed_hosts(entries, skipped)
         return ImportResult(
-            entries=self._snapshot_to_entries(
-                snapshot,
-                share_uri_by_identity=self._share_uri_by_identity(source_items),
-            ),
+            entries=entries,
             skipped_messages=skipped,
         )
 
