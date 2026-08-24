@@ -4,11 +4,14 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 import json
+import logging
 from pathlib import Path
 from secrets import choice, token_urlsafe
 from threading import Lock
 
 import httpx
+
+_logger = logging.getLogger("telegram.ui")
 
 from app.config import Settings
 from app.schemas.contracts import (
@@ -809,20 +812,22 @@ class TelegramAuthService:
         except Exception as exc:
             reply = BotResponse(text=str(exc), edit_message=True)
 
+        toast: str | None = None
         if reply is not None:
-            if reply.callback_notice:
-                try:
-                    self._bot_gateway.answer_callback_query(
-                        callback_query_id=callback_query_id,
-                        text=reply.callback_notice,
-                    )
-                except RuntimeError:
-                    pass
-            self._deliver_bot_response(
+            engine_notice = self._deliver_bot_response(
                 chat_id=chat_id,
                 response=reply,
                 message_id=message_id,
             )
+            toast = reply.callback_notice or engine_notice
+
+        try:
+            self._bot_gateway.answer_callback_query(
+                callback_query_id=callback_query_id,
+                text=toast,
+            )
+        except RuntimeError:
+            pass
 
     def _deliver_bot_response(
         self,
@@ -830,25 +835,39 @@ class TelegramAuthService:
         chat_id: int,
         response: BotResponse,
         message_id: int | None = None,
-    ) -> None:
+    ) -> str | None:
         """Deliver a bot response as an in-place card update when possible.
 
         UX contract: every navigation screen lives on ONE persistent message
         per chat ("the card"). Callbacks edit that card instead of spawning
         new messages. Only truly ephemeral payloads (invoices, files, access
         links) are sent as separate messages by their own senders.
+
+        Returns an optional callback toast (e.g. when the requested screen is
+        already open). Explicit commands (/start) force a visible refresh:
+        the old card is replaced with a brand-new message.
         """
         gateway = self._bot_gateway
         if gateway is None:
-            return
+            return None
+        command_origin = message_id is None
 
         session: tuple[int, str, str | None, str | None] | None = None
         admin_service = self._admin_service
         if admin_service is not None:
             try:
                 session = admin_service.ui_store.get_bot_ui_session(chat_id)
-            except Exception:
+            except Exception as exc:
+                _logger.warning("ui session read failed chat=%s err=%s", chat_id, exc)
                 session = None
+        _logger.warning(
+            "ui deliver chat=%s photo=%s pressed=%s session=%s cmd_origin=%s",
+            chat_id,
+            bool(response.photo),
+            message_id,
+            session[0] if session else None,
+            command_origin,
+        )
 
         # --- photo card -----------------------------------------------------
         if response.photo:
@@ -880,12 +899,17 @@ class TelegramAuthService:
                         photo_path=photo_path,
                         reply_markup=response.reply_markup,
                     )
-                    return
+                    _logger.warning("ui action=edit_media chat=%s mid=%s", chat_id, session[0])
+                    return None
                 except RuntimeError as exc:
+                    _logger.warning("ui edit_media failed chat=%s err=%s", chat_id, exc)
                     if self._is_not_modified(exc):
-                        return
+                        if command_origin:
+                            pass  # fall through: /start must be visible
+                        else:
+                            return "Этот экран уже открыт"
 
-            # cannot convert in place: replace the old card with a fresh one
+            # cannot convert in place (or forced refresh): replace the card
             if session is not None:
                 try:
                     gateway.delete_message(chat_id=chat_id, message_id=session[0])
@@ -899,10 +923,11 @@ class TelegramAuthService:
                     reply_markup=response.reply_markup,
                     parse_mode=response.parse_mode,
                 )
+                _logger.warning("ui action=new_photo chat=%s", chat_id)
             except RuntimeError:
-                return
+                return None
             self._remember_ui_card(chat_id, "photo", sent, token=response.photo)
-            return
+            return None
 
         # --- text card ------------------------------------------------------
         replaced_photo_card = False
@@ -928,10 +953,15 @@ class TelegramAuthService:
                         reply_markup=response.reply_markup,
                         parse_mode=response.parse_mode,
                     )
-                    return
+                    _logger.warning("ui action=edit_text chat=%s mid=%s", chat_id, session[0])
+                    return None
                 except RuntimeError as exc:
+                    _logger.warning("ui edit_text failed chat=%s err=%s", chat_id, exc)
                     if self._is_not_modified(exc):
-                        return
+                        if command_origin:
+                            pass  # fall through: /start must be visible
+                        else:
+                            return "Этот экран уже открыт"
 
         if (
             message_id is not None
@@ -947,20 +977,28 @@ class TelegramAuthService:
                     parse_mode=response.parse_mode,
                 )
                 self._remember_ui_card(chat_id, "text", message_id)
-                return
+                _logger.warning("ui action=edit_pressed chat=%s mid=%s", chat_id, message_id)
+                return None
             except RuntimeError as exc:
+                _logger.warning("ui edit_pressed failed chat=%s err=%s", chat_id, exc)
                 if self._is_not_modified(exc):
-                    return
+                    return "Этот экран уже открыт"
 
         try:
+            if session is not None:
+                try:
+                    gateway.delete_message(chat_id=chat_id, message_id=session[0])
+                except Exception:
+                    pass
             sent_message = gateway.send_message(
                 chat_id=chat_id,
                 text=response.text,
                 reply_markup=response.reply_markup,
                 parse_mode=response.parse_mode,
             )
+            _logger.warning("ui action=new_text chat=%s", chat_id)
         except RuntimeError:
-            return
+            return None
         self._remember_ui_card(chat_id, "text", sent_message)
 
     @staticmethod

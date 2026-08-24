@@ -17,7 +17,11 @@ _telegram_poll_thread: Thread | None = None
 
 
 def _telegram_poll_loop() -> None:
+    iterations = 0
     while not _telegram_stop_event.wait(settings.telegram_bot_poll_interval_seconds):
+        iterations += 1
+        if iterations % 30 == 0:
+            _logger.warning("telegram poller alive (iterations=%s)", iterations)
         try:
             auth_service.process_updates()
         except Exception:

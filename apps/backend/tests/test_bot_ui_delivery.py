@@ -77,16 +77,39 @@ def test_second_response_edits_same_card(svc):
     assert not any(c[0] == "send_message" for c in gw.calls[1:])
 
 
-def test_not_modified_is_swallowed(svc):
+def test_not_modified_on_callback_shows_toast_without_new_message(svc):
     service, gw = svc
     service._deliver_bot_response(
         chat_id=1, response=BotResponse(text="first"), message_id=None
     )
+    card_mid = service._admin_service.ui_store.get_bot_ui_session(1)[0]
     gw.fail_edit_text = True
-    service._deliver_bot_response(chat_id=1, response=BotResponse(text="same"), message_id=None)
+    notice = service._deliver_bot_response(
+        chat_id=1,
+        response=BotResponse(text="same"),
+        message_id=card_mid,
+    )
+    assert notice == "Этот экран уже открыт"
     assert ("send_message", 1, "same") not in [
         c for c in gw.calls if c[0] == "send_message"
     ]
+
+
+def test_not_modified_on_start_forces_visible_refresh(svc):
+    service, gw = svc
+    service._deliver_bot_response(
+        chat_id=1, response=BotResponse(text="first"), message_id=None
+    )
+    card_mid = service._admin_service.ui_store.get_bot_ui_session(1)[0]
+    gw.fail_edit_text = True  # Telegram rejects identical content
+    service._deliver_bot_response(
+        chat_id=1,
+        response=BotResponse(text="same"),
+        message_id=None,
+    )
+    assert ("delete", 1, card_mid) in gw.calls
+    sends = [c for c in gw.calls if c[0] == "send_message" and c[2] == "same"]
+    assert sends
 
 
 def test_photo_card_uses_media_edit_with_file_id_cache(svc):
