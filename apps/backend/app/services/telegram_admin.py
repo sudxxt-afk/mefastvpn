@@ -57,6 +57,11 @@ class TelegramAdminService:
         """Called by TelegramAuthService after the gateway is created."""
         self._bot_gateway = gateway
 
+    @property
+    def ui_store(self):
+        """Persistent storage for per-chat UI card sessions."""
+        return self._facade.store
+
     # ──────────────────────────────────────────────
     #  Proactive Telegram notifications
     # ──────────────────────────────────────────────

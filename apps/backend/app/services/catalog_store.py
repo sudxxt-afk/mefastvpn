@@ -3238,6 +3238,15 @@ class CatalogStore:
                     updated_at TEXT NOT NULL
                 );
 
+                CREATE TABLE IF NOT EXISTS bot_ui_sessions (
+                    chat_id INTEGER PRIMARY KEY,
+                    message_id INTEGER NOT NULL,
+                    kind TEXT NOT NULL,
+                    photo_token TEXT,
+                    file_id TEXT,
+                    updated_at TEXT NOT NULL
+                );
+
                 CREATE TABLE IF NOT EXISTS app_users (
                     user_id TEXT PRIMARY KEY,
                     telegram_user_id INTEGER,
@@ -3602,6 +3611,55 @@ class CatalogStore:
                 if column_name not in existing_entry_columns:
                     connection.execute(sql)
             connection.commit()
+
+    def get_bot_ui_session(
+        self,
+        chat_id: int,
+    ) -> tuple[int, str, str | None, str | None] | None:
+        with self._lock, self._connect() as connection:
+            row = connection.execute(
+                """
+                SELECT message_id, kind, photo_token, file_id
+                FROM bot_ui_sessions
+                WHERE chat_id = ?
+                """,
+                (chat_id,),
+            ).fetchone()
+        if row is None:
+            return None
+        return (
+            int(row["message_id"]),
+            str(row["kind"]),
+            row["photo_token"],
+            row["file_id"],
+        )
+
+    def set_bot_ui_session(
+        self,
+        *,
+        chat_id: int,
+        message_id: int,
+        kind: str,
+        photo_token: str | None = None,
+        file_id: str | None = None,
+    ) -> None:
+        now = datetime.now(UTC).isoformat()
+        with self._lock, self._connect() as connection:
+            connection.execute(
+                """
+                INSERT INTO bot_ui_sessions(
+                    chat_id, message_id, kind, photo_token, file_id, updated_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?)
+                ON CONFLICT(chat_id) DO UPDATE SET
+                    message_id = excluded.message_id,
+                    kind = excluded.kind,
+                    photo_token = excluded.photo_token,
+                    file_id = excluded.file_id,
+                    updated_at = excluded.updated_at
+                """,
+                (chat_id, message_id, kind, photo_token, file_id, now),
+            )
 
     def _connect(self) -> sqlite3.Connection:
         connection = sqlite3.connect(self._path, check_same_thread=False)

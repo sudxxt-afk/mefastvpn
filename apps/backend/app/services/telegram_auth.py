@@ -80,6 +80,17 @@ class TelegramBotGateway:
     ) -> None:
         raise NotImplementedError
 
+    def edit_message_media(
+        self,
+        *,
+        chat_id: int,
+        message_id: int,
+        media: dict[str, object],
+        photo_path: str | None = None,
+        reply_markup: dict[str, object] | None = None,
+    ) -> None:
+        raise NotImplementedError
+
     def answer_callback_query(
         self,
         *,
@@ -219,6 +230,45 @@ class HttpxTelegramBotGateway(TelegramBotGateway):
         self._request(
             "POST",
             f"{self._api_base_url}/editMessageText",
+            json=payload,
+        )
+
+    def edit_message_media(
+        self,
+        *,
+        chat_id: int,
+        message_id: int,
+        media: dict[str, object],
+        photo_path: str | None = None,
+        reply_markup: dict[str, object] | None = None,
+    ) -> None:
+        payload: dict[str, object] = {
+            "chat_id": chat_id,
+            "message_id": message_id,
+        }
+        if reply_markup is not None:
+            payload["reply_markup"] = json.dumps(reply_markup, ensure_ascii=False)
+
+        media_payload = dict(media)
+        if photo_path:
+            path = Path(photo_path).expanduser()
+            if path.is_file():
+                media_payload["media"] = "attach://photo"
+                payload["media"] = json.dumps(media_payload, ensure_ascii=False)
+                with path.open("rb") as handle:
+                    self._request(
+                        "POST",
+                        f"{self._api_base_url}/editMessageMedia",
+                        data=payload,
+                        files={"photo": (path.name, handle, "image/png")},
+                    )
+                return
+            media_payload["media"] = photo_path
+
+        payload["media"] = json.dumps(media_payload, ensure_ascii=False)
+        self._request(
+            "POST",
+            f"{self._api_base_url}/editMessageMedia",
             json=payload,
         )
 
@@ -781,14 +831,68 @@ class TelegramAuthService:
         response: BotResponse,
         message_id: int | None = None,
     ) -> None:
+        """Deliver a bot response as an in-place card update when possible.
+
+        UX contract: every navigation screen lives on ONE persistent message
+        per chat ("the card"). Callbacks edit that card instead of spawning
+        new messages. Only truly ephemeral payloads (invoices, files, access
+        links) are sent as separate messages by their own senders.
+        """
+        gateway = self._bot_gateway
+        if gateway is None:
+            return
+
+        session: tuple[int, str, str | None, str | None] | None = None
+        admin_service = self._admin_service
+        if admin_service is not None:
+            try:
+                session = admin_service.ui_store.get_bot_ui_session(chat_id)
+            except Exception:
+                session = None
+
+        # --- photo card -----------------------------------------------------
         if response.photo:
-            if response.edit_message and message_id is not None:
+            reuse_file_id = (
+                session is not None
+                and session[1] == "photo"
+                and session[2] == response.photo
+                and session[3]
+            )
+            if (
+                session is not None
+                and session[1] == "photo"
+                and (message_id is None or message_id == session[0])
+            ):
+                media_payload: dict[str, object] = {"type": "photo"}
+                if reuse_file_id and session is not None:
+                    media_payload["media"] = session[3]
+                    photo_path = None
+                else:
+                    media_payload["media"] = "attach://photo"
+                    photo_path = response.photo
+                if response.parse_mode:
+                    media_payload["parse_mode"] = response.parse_mode
                 try:
-                    self._bot_gateway.delete_message(chat_id=chat_id, message_id=message_id)
+                    gateway.edit_message_media(
+                        chat_id=chat_id,
+                        message_id=session[0],
+                        media=media_payload,
+                        photo_path=photo_path,
+                        reply_markup=response.reply_markup,
+                    )
+                    return
+                except RuntimeError as exc:
+                    if self._is_not_modified(exc):
+                        return
+
+            # cannot convert in place: replace the old card with a fresh one
+            if session is not None:
+                try:
+                    gateway.delete_message(chat_id=chat_id, message_id=session[0])
                 except Exception:
                     pass
             try:
-                self._bot_gateway.send_photo(
+                sent = gateway.send_photo(
                     chat_id=chat_id,
                     photo=response.photo,
                     caption=response.text,
@@ -797,23 +901,59 @@ class TelegramAuthService:
                 )
             except RuntimeError:
                 return
+            self._remember_ui_card(chat_id, "photo", sent, token=response.photo)
             return
 
-        if response.edit_message and message_id is not None:
+        # --- text card ------------------------------------------------------
+        replaced_photo_card = False
+        if session is not None and session[1] == "photo":
+            # a text screen replaces the photo card: keep the single-card UX
             try:
-                self._bot_gateway.edit_message_text(
+                gateway.delete_message(chat_id=chat_id, message_id=session[0])
+            except Exception:
+                pass
+            session = None
+            replaced_photo_card = True
+
+        if session is not None:
+            if message_id is not None and message_id != session[0]:
+                # pressed on a stale copy: update the live card instead
+                pass
+            if session[1] == "text":
+                try:
+                    gateway.edit_message_text(
+                        chat_id=chat_id,
+                        message_id=session[0],
+                        text=response.text,
+                        reply_markup=response.reply_markup,
+                        parse_mode=response.parse_mode,
+                    )
+                    return
+                except RuntimeError as exc:
+                    if self._is_not_modified(exc):
+                        return
+
+        if (
+            message_id is not None
+            and not replaced_photo_card
+            and (session is None or session[1] != "text")
+        ):
+            try:
+                gateway.edit_message_text(
                     chat_id=chat_id,
                     message_id=message_id,
                     text=response.text,
                     reply_markup=response.reply_markup,
                     parse_mode=response.parse_mode,
                 )
+                self._remember_ui_card(chat_id, "text", message_id)
                 return
-            except RuntimeError:
-                pass
+            except RuntimeError as exc:
+                if self._is_not_modified(exc):
+                    return
 
         try:
-            self._bot_gateway.send_message(
+            sent_message = gateway.send_message(
                 chat_id=chat_id,
                 text=response.text,
                 reply_markup=response.reply_markup,
@@ -821,6 +961,56 @@ class TelegramAuthService:
             )
         except RuntimeError:
             return
+        self._remember_ui_card(chat_id, "text", sent_message)
+
+    @staticmethod
+    def _is_not_modified(exc: RuntimeError) -> bool:
+        message = str(exc).lower()
+        return "message is not modified" in message
+
+    @staticmethod
+    def _extract_photo_file_id(message: dict[str, object]) -> str | None:
+        photos = message.get("photo")
+        if isinstance(photos, list) and photos:
+            last = photos[-1]
+            if isinstance(last, dict):
+                file_id = last.get("file_id")
+                if isinstance(file_id, str):
+                    return file_id
+        return None
+
+    def _remember_ui_card(
+        self,
+        chat_id: int,
+        kind: str,
+        message_or_id: dict[str, object] | int | None,
+        *,
+        token: str | None = None,
+    ) -> None:
+        admin_service = self._admin_service
+        if admin_service is None:
+            return
+        if isinstance(message_or_id, dict):
+            raw = message_or_id.get("message_id")
+        else:
+            raw = message_or_id
+        try:
+            mid = int(raw)  # type: ignore[arg-type]
+        except (TypeError, ValueError):
+            return
+        file_id = None
+        if kind == "photo" and isinstance(message_or_id, dict):
+            file_id = self._extract_photo_file_id(message_or_id)
+        try:
+            admin_service.ui_store.set_bot_ui_session(
+                chat_id=chat_id,
+                message_id=mid,
+                kind=kind,
+                photo_token=token,
+                file_id=file_id,
+            )
+        except Exception:
+            pass
 
     def _match_flow(self, text: str) -> PendingAuthFlow | None:
         normalized = text.strip()
