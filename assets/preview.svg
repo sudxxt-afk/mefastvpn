@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="860" height="360" font-family="monospace">
+  <rect width="860" height="360" rx="16" fill="#1a1b26"/>
+  <text x="430" y="36" text-anchor="middle" font-size="20" fill="#9ece6a">MeFast VPN · инфраструктура</text>
+  <text x="430" y="58" text-anchor="middle" font-size="12" fill="#565f89">код и шаблоны в git · секреты только на сервере · деплой по OPERATIONS.md</text>
+  <g font-size="12">
+    <rect x="25" y="86" width="150" height="80" rx="10" fill="#24283b" stroke="#009688" stroke-width="2"/>
+    <text x="100" y="114" text-anchor="middle" fill="#4db6ac">⚡ backend</text>
+    <text x="100" y="136" text-anchor="middle" fill="#565f89">FastAPI · /v1</text>
+    <text x="100" y="154" text-anchor="middle" fill="#565f89">admin API</text>
+    <rect x="195" y="86" width="150" height="80" rx="10" fill="#24283b" stroke="#7aa2f7" stroke-width="2"/>
+    <text x="270" y="114" text-anchor="middle" fill="#7aa2f7">🖥️ admin</text>
+    <text x="270" y="136" text-anchor="middle" fill="#565f89">статика → /v1</text>
+    <text x="270" y="154" text-anchor="middle" fill="#565f89">вход · подписки</text>
+    <rect x="365" y="86" width="150" height="80" rx="10" fill="#24283b" stroke="#2ca5e0" stroke-width="2"/>
+    <text x="440" y="114" text-anchor="middle" fill="#2ca5e0">🤖 bot</text>
+    <text x="440" y="136" text-anchor="middle" fill="#565f89">aiogram</text>
+    <text x="440" y="154" text-anchor="middle" fill="#565f89">+ Marzban</text>
+    <rect x="535" y="86" width="140" height="80" rx="10" fill="#24283b" stroke="#e0af68" stroke-width="2"/>
+    <text x="605" y="114" text-anchor="middle" fill="#e0af68">🔀 AmneziaWG</text>
+    <text x="605" y="136" text-anchor="middle" fill="#565f89">скрипты</text>
+    <text x="605" y="154" text-anchor="middle" fill="#565f89">без ключей</text>
+    <rect x="695" y="86" width="140" height="80" rx="10" fill="#24283b" stroke="#bb9af7" stroke-width="2"/>
+    <text x="765" y="114" text-anchor="middle" fill="#bb9af7">🧱 infra</text>
+    <text x="765" y="136" text-anchor="middle" fill="#565f89">nginx</text>
+    <text x="765" y="154" text-anchor="middle" fill="#565f89">systemd</text>
+  </g>
+  <text x="430" y="200" text-anchor="middle" font-size="12" fill="#565f89">server-config/ и infra/: юниты speedy-vpn-* · nginx-конфиги · env-шаблоны</text>
+  <g font-size="12" text-anchor="middle">
+    <rect x="60" y="220" width="170" height="44" rx="22" fill="#9ece6a"/>
+    <text x="145" y="247" fill="#1a1b26">1️⃣ backup</text>
+    <rect x="250" y="220" width="170" height="44" rx="22" fill="#24283b" stroke="#9ece6a" stroke-width="2"/>
+    <text x="335" y="247" fill="#c0caf5">2️⃣ preflight</text>
+    <rect x="440" y="220" width="170" height="44" rx="22" fill="#24283b" stroke="#9ece6a" stroke-width="2"/>
+    <text x="525" y="247" fill="#c0caf5">3️⃣ 1 компонента</text>
+    <rect x="630" y="220" width="170" height="44" rx="22" fill="#24283b" stroke="#9ece6a" stroke-width="2"/>
+    <text x="715" y="247" fill="#c0caf5">4️⃣ реальный путь</text>
+  </g>
+  <text x="430" y="296" text-anchor="middle" font-size="12" fill="#565f89">проверяй не статус процесса, а сценарий: healthz → вход → подписка → handshake</text>
+  <text x="430" y="320" text-anchor="middle" font-size="12" fill="#565f89">ежедневно: место · backup · серты · логи · еженедельно: restore + тестовый коннект</text>
+</svg>

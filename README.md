@@ -1,5 +1,14 @@
 # MeFast VPN
 
+![FastAPI](https://img.shields.io/badge/FastAPI-backend-009688?style=flat-square&logo=fastapi)
+![aiogram](https://img.shields.io/badge/aiogram-bot-2CA5E0?style=flat-square&logo=telegram)
+![Marzban](https://img.shields.io/badge/Marzban-panel-f7768e?style=flat-square)
+![AmneziaWG](https://img.shields.io/badge/AmneziaWG-scripts-9ece6a?style=flat-square)
+![nginx](https://img.shields.io/badge/nginx-systemd-009639?style=flat-square&logo=nginx)
+![Secrets](https://img.shields.io/badge/Секреты-не_в_git-e0af68?style=flat-square)
+
+![Схема инфраструктуры](assets/preview.svg)
+
 Исходный код и инфраструктурные конфигурации MeFast VPN. Репозиторий намеренно
 не содержит пользовательских данных, ключей, сертификатов, VPN-конфигураций,
 SQLite-баз или рабочих `.env`.
